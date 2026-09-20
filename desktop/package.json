@@ -1,0 +1,6 @@
+{
+  "name": "@jce/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Electron packaging reserved for L11."
+}

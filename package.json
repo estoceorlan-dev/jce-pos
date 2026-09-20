@@ -1,0 +1,51 @@
+{
+  "name": "jce-pos",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "frontend",
+    "backend",
+    "desktop"
+  ],
+  "engines": {
+    "node": ">=24.21.0 <25",
+    "npm": ">=11 <12"
+  },
+  "packageManager": "npm@11.19.0",
+  "scripts": {
+    "dev": "npm run build -w @jce/shared && concurrently -k -n api,web \"npm run dev -w @jce/backend\" \"npm run dev -w @jce/frontend\"",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "npm run build -w @jce/shared && tsc -p backend/tsconfig.json --noEmit && tsc -p frontend/tsconfig.json --noEmit && tsc -p tsconfig.tests.json --noEmit",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration --no-file-parallelism",
+    "test:e2e": "playwright test",
+    "build:server": "npm run build -w @jce/shared && npm run build -w @jce/frontend && npm run build -w @jce/backend",
+    "start:server": "node --env-file-if-exists=.env backend/dist/server.js",
+    "db:migrate": "node --env-file-if-exists=.env --import tsx backend/src/db/migrate.ts",
+    "db:bootstrap": "node scripts/deferred.mjs bootstrap L3",
+    "db:seed:demo": "node scripts/deferred.mjs demo-seed L4",
+    "build:desktop": "node scripts/deferred.mjs desktop L11",
+    "verify:release": "npm run lint && npm run typecheck && npm run test:unit && npm run test:integration && npm run build:server && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.63.0",
+    "@types/express": "5.0.6",
+    "@types/node": "24.13.6",
+    "@types/pg": "8.23.1",
+    "@types/supertest": "7.2.1",
+    "concurrently": "10.0.5",
+    "eslint": "10.11.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.12.0",
+    "prettier": "3.9.8",
+    "supertest": "7.2.2",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.0",
+    "vitest": "5.0.1"
+  }
+}

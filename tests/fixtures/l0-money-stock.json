@@ -1,0 +1,141 @@
+{
+  "status": "proposed_synthetic_not_owner_approved",
+  "currency": "PHP",
+  "rounding": "decimal_half_up_at_line_settlement",
+  "cases": [
+    {
+      "id": "inclusive-tax-discount",
+      "input": {
+        "quantity": "2",
+        "unitPrice": "112.00",
+        "taxRate": "0.12",
+        "taxInclusive": true,
+        "discountRate": "0.10"
+      },
+      "expected": {
+        "gross": "224.00",
+        "discount": "22.40",
+        "netBeforeTax": "180.00",
+        "tax": "21.60",
+        "total": "201.60"
+      },
+      "calculation": "2 × 112 = 224; 224 × 10% = 22.40; 201.60 ÷ 1.12 = 180; tax = 21.60."
+    },
+    {
+      "id": "exclusive-tax-fractional",
+      "input": {
+        "quantity": "1.250000",
+        "unitPrice": "80.00",
+        "taxRate": "0.12",
+        "taxInclusive": false,
+        "discountRate": "0.05"
+      },
+      "expected": {
+        "gross": "100.00",
+        "discount": "5.00",
+        "netBeforeTax": "95.00",
+        "tax": "11.40",
+        "total": "106.40"
+      },
+      "calculation": "1.25 × 80 = 100; discount 5; 95 × 12% = 11.40; total 106.40."
+    },
+    {
+      "id": "split-tender-change",
+      "input": {
+        "total": "201.60",
+        "ewalletApplied": "100.00",
+        "cashTendered": "150.00"
+      },
+      "expected": {
+        "cashApplied": "101.60",
+        "paymentsApplied": "201.60",
+        "change": "48.40",
+        "netDrawerIncrease": "101.60"
+      },
+      "calculation": "201.60 − 100 = 101.60 cash applied; 150 − 101.60 = 48.40 change."
+    },
+    {
+      "id": "partial-refund-original-cost",
+      "input": {
+        "source": "inclusive-tax-discount",
+        "soldQuantity": "2",
+        "returnQuantity": "1",
+        "previousReturns": "0",
+        "originalUnitCost": "60.000000"
+      },
+      "expected": {
+        "refund": "100.80",
+        "netReversal": "90.00",
+        "taxReversal": "10.80",
+        "discountAllocation": "11.20",
+        "saleableQuantityIncrease": "1",
+        "inventoryValueIncrease": "60.000000",
+        "remainingRefundableQuantity": "1"
+      },
+      "calculation": "Half original line = 100.80; original cost restored = 60. Damaged return instead adds 1 damaged unit and 0 saleable units."
+    },
+    {
+      "id": "discount-residue-refunds",
+      "input": {
+        "untaxedLinePrices": ["33.33", "33.33", "33.34"],
+        "orderDiscount": "10.00"
+      },
+      "expected": {
+        "lineDiscounts": ["3.34", "3.33", "3.33"],
+        "settledTotals": ["29.99", "30.00", "30.01"],
+        "total": "90.00",
+        "refundsInLineOrder": ["29.99", "30.00", "30.01"],
+        "totalAfterRefunds": "0.00"
+      },
+      "calculation": "Raw shares 3.333, 3.333, 3.334 round to 3.33 each; residual 0.01 assigned to first eligible line in stable order. Refund stored allocations."
+    },
+    {
+      "id": "fractional-centavo",
+      "input": { "quantity": "0.125000", "untaxedUnitPrice": "19.960000" },
+      "expected": { "unrounded": "2.495000", "settled": "2.50" },
+      "calculation": "0.125 × 19.96 = 2.495; decimal half-up = 2.50."
+    },
+    {
+      "id": "weighted-average-stock",
+      "input": {
+        "openingQuantity": "10",
+        "openingValue": "500.000000",
+        "receivedQuantity": "5",
+        "purchaseUnitCost": "65.000000",
+        "landedCost": "15.000000",
+        "soldQuantity": "3"
+      },
+      "expected": {
+        "receiptValue": "340.000000",
+        "quantityAfterReceipt": "15",
+        "valueAfterReceipt": "840.000000",
+        "averageCost": "56.000000",
+        "saleCost": "168.000000",
+        "endingQuantity": "12",
+        "endingValue": "672.000000"
+      },
+      "calculation": "5 × 65 + 15 = 340; 840 ÷ 15 = 56; 3 × 56 = 168; ending 12 units/value 672."
+    },
+    {
+      "id": "partial-transfer",
+      "input": {
+        "sourceQuantity": "12",
+        "sourceValue": "672.000000",
+        "dispatchQuantity": "4",
+        "receivedQuantity": "3",
+        "dispatchCost": "56.000000"
+      },
+      "expected": {
+        "sourceQuantity": "8",
+        "sourceValue": "448.000000",
+        "destinationIncrease": "3",
+        "destinationValueIncrease": "168.000000",
+        "inTransitQuantity": "1",
+        "inTransitValue": "56.000000",
+        "totalQuantity": "12",
+        "totalValue": "672.000000"
+      },
+      "calculation": "Reservation changes available only; dispatch moves 4/value 224 to transit; receive 3/value 168. 448 + 168 + 56 = 672. Short unit stays in transit pending resolution."
+    }
+  ]
+}
