@@ -1,5 +1,7 @@
 # ADR 0002 — Workflows and approval proposal
 
+Business-specific answers and confirmations are stored only in `.local/business-intake/`, which Git ignores. This shared document contains generic planning guidance; consult the local records before applying defaults or requesting an already-recorded decision.
+
 Date: 2026-09-21. Proposed business rules; owner sign-off pending. Not implemented in L1.
 
 ## Permission matrix

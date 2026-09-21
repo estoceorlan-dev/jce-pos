@@ -1,5 +1,7 @@
 # JCE POS
 
+Business-specific answers and confirmations are stored only in `.local/business-intake/`, which Git ignores. This shared document contains generic planning guidance; consult the local records before applying defaults or requesting an already-recorded decision.
+
 Point-of-sale and general merchandise management system for JCE Dry Goods Trading.
 
 **L1 foundation implemented.** The React workspace, Express API, PostgreSQL migration checks, CI and tests are available. L0 rules and synthetic calculations are documented; real business records, hardware details and owner approval remain pending. Login, checkout and the Windows installer arrive in later milestones.

@@ -12,7 +12,10 @@ backups/
 exports/
 customer-data/
 pgdata/
+# Private local records, including business intake and owner decisions.
 .local/
+# Prevent accidentally re-adding the former intake path.
+docs/decisions/0003-business-intake.md
 *.dump
 *.backup
 *.pem

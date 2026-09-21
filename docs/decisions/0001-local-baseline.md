@@ -1,5 +1,7 @@
 # ADR 0001 — Local implementation baseline
 
+Business-specific answers and confirmations are stored only in `.local/business-intake/`, which Git ignores. This shared document contains generic planning guidance; consult the local records before applying defaults or requesting an already-recorded decision.
+
 Date: 2026-09-21. Technical baseline adopted for L1 under the instruction to proceed with L0–L1. Business rules below are proposals awaiting owner validation.
 
 ## Scope and runtime

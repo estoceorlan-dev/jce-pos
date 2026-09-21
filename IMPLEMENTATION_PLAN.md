@@ -1,5 +1,7 @@
 # JCE POS Implementation Plan: Local Production
 
+Business-specific answers and confirmations are stored only in `.local/business-intake/`, which Git ignores. This shared document contains generic planning guidance; consult the local records before applying defaults or requesting an already-recorded decision.
+
 Status (2026-09-21): L0 working decisions and synthetic fixtures documented; owner evidence/approval remains pending. L1 application shell implemented and locally verified. L2-L13 have not started.
 
 Prepared: 2026-09-20. Source of scope: [ARCHITECTURE.md](ARCHITECTURE.md).

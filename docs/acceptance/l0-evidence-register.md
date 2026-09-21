@@ -1,21 +1,21 @@
-# L0 evidence register
+# L0 evidence checklist
 
-Recorded 2026-09-21. The request authorizes the technical baseline and L1 work. Business sign-off has not been supplied, so L0's business exit gate remains open.
+This shared checklist intentionally omits business-specific answers, hardware inventories, personnel, schedules and approval records. The local evidence register and authoritative intake are kept in Git-ignored `.local/business-intake/docs/`. Consult them before asking the owner to repeat an answer.
 
-| Evidence                                                               | State                                                | Required before                       |
-| ---------------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------- |
-| Real receipt, price list, purchase, return, count and transfer records | Not supplied; no inspection claimed                  | Relevant domain rules finalized       |
-| Launch branch/address, tills, host/router/UPS/spare host               | Unknown; 5-till test envelope only                   | Installation/load qualification       |
-| Tax registration/rates, receipt fields and accountant approval         | Unknown; synthetic examples only                     | Live receipts/tax behavior            |
-| Business-day cutoff, discounts and rounding                            | Proposed in ADR 0001                                 | Financial calculations released       |
-| Permission matrix, second-person thresholds/staffing                   | Proposed in ADR 0002, unsigned                       | L3 acceptance                         |
-| Windows/browser builds, printer/scanner, paper and drawer              | Unknown                                              | L11 hardware qualification            |
-| SKU/unit/barcode/pack/fractional examples                              | Unknown                                              | L4 catalog acceptance                 |
-| Cost/landed cost/return/damage/transfer policy                         | Proposed, unsigned                                   | L2 schema and L5 valuation acceptance |
-| Import files/totals, capacity and cutover date                         | Unknown                                              | Load tests and cutover                |
-| Backup destination/key custodian/maintainer                            | Unknown                                              | Recovery rehearsal                    |
-| Fixture approval                                                       | Hand-calculated examples in tests/fixtures; unsigned | Calculation acceptance                |
+| Evidence category             | Record privately                                                                                    | Required before                                |
+| ----------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| Business and branches         | Identity, addresses, launch scope and physical checkout/connection model                            | Branch setup and deployment design             |
+| Capacity and schedule         | Tills, SKUs, transactions, growth and target dates                                                  | Load qualification and cutover                 |
+| Business source records       | Receipts, price lists, purchases, returns, counts, transfers and SKU/unit examples                  | Domain rule and fixture acceptance             |
+| Import                        | Scope, source files/templates, opening values and reconciliation totals                             | Import and cutover acceptance                  |
+| Hardware and network          | Actual OS builds, CPU/storage/RAM, PCs, router, connection quality, peripherals and drawer          | Installation and physical-device qualification |
+| Recovery                      | Backup destination, power protection, recovery host, named custodians, objectives and drill results | Recovery qualification                         |
+| Tax and receipt configuration | Applicable treatment, price inclusivity, fields, numbering and reviewed examples                    | Live receipt use                               |
+| Money and inventory rules     | Discounts, rounding, tenders, costs, returns and discrepancy treatment                              | Relevant domain calculations                   |
+| Permissions and approvals     | Role grants, branch scope, thresholds, exceptions, approver coverage and validity                   | Authorization acceptance                       |
+| Business-day close            | Cutoff, authority and correction procedures                                                         | Closing workflow acceptance                    |
+| Fixture review                | Named reviewer, accepted revision, date and exceptions                                              | Calculation acceptance                         |
 
-Record source reference, reviewer, date, accepted rule, exceptions and affected fixture IDs as evidence arrives. Keep private source documents outside Git; record references without customer details.
+Public planning documents and synthetic fixtures do not prove business approval. Keep source records and actual acceptance status in the private local record. An answer previously confirmed there remains valid even though it is omitted here.
 
-Owner/reviewer: **pending**. Approval date: **pending**. Accepted fixture revision: **pending**. Exceptions: **pending**.
+Do not copy private answers back into tracked Markdown, fixtures, issues or commit messages. The local directory is excluded from normal Git staging/uploads; maintain its backup separately if needed.
