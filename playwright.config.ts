@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { testDatabase } from './tests/support/database.js';
 
 const databaseUrl = process.env['TEST_DATABASE_URL'];
 if (!databaseUrl || !new URL(databaseUrl).pathname.endsWith('_test'))
@@ -21,7 +22,7 @@ export default defineConfig({
     url: 'http://127.0.0.1:3100/health/live',
     reuseExistingServer: false,
     env: {
-      DATABASE_URL: databaseUrl,
+      DATABASE_URL: testDatabase().connection('runtime'),
       NODE_ENV: 'production',
       HOST: '127.0.0.1',
       PORT: '3100',

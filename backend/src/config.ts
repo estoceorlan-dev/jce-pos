@@ -17,7 +17,12 @@ const envSchema = z.object({
   HOST: z.string().min(1).default('127.0.0.1'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   DATABASE_URL: databaseUrl,
-  MIGRATION_DATABASE_URL: databaseUrl.optional(),
+  STORAGE_MONITOR_PATH: z.string().min(1).optional(),
+  STORAGE_MIN_FREE_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(5 * 1024 ** 3),
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'silent'])
     .default('info'),

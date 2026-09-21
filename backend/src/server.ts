@@ -5,6 +5,8 @@ import { createApp, defaultFrontend } from './app.js';
 import { readConfig } from './config.js';
 import { createPool } from './db/pool.js';
 import { isReady } from './db/migrations.js';
+import { assertDatabaseRole } from './db/security.js';
+import { monitorStorage } from './jobs/storage.js';
 
 try {
   const config = readConfig();
@@ -21,11 +23,24 @@ try {
       'database connection interrupted',
     ),
   );
-  const app = createApp({ ready: () => isReady(pool), logger });
+  const app = createApp({
+    ready: async () => {
+      await assertDatabaseRole(pool, 'runtime');
+      return isReady(pool);
+    },
+    logger,
+  });
+  const stopMonitoring = monitorStorage(
+    pool,
+    logger,
+    config.STORAGE_MONITOR_PATH,
+    config.STORAGE_MIN_FREE_BYTES,
+  );
   const server = app.listen(config.PORT, config.HOST, () =>
     logger.info({ port: config.PORT }, 'JCE POS listening'),
   );
   server.on('error', () => {
+    stopMonitoring();
     logger.fatal('Server could not listen. Check host and port.');
     void pool.end();
     process.exitCode = 1;
@@ -34,6 +49,7 @@ try {
   const shutdown = () => {
     if (stopping) return;
     stopping = true;
+    stopMonitoring();
     logger.info('Shutting down');
     const deadline = setTimeout(() => process.exit(1), 10000).unref();
     server.close(() => {

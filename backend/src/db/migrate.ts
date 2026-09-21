@@ -1,10 +1,9 @@
-import { readConfig } from '../config.js';
+import { readDatabaseUrl } from './urls.js';
 import { createPool } from './pool.js';
 import { migrate } from './migrations.js';
 
 try {
-  const config = readConfig();
-  const pool = createPool(config.MIGRATION_DATABASE_URL ?? config.DATABASE_URL);
+  const pool = createPool(readDatabaseUrl('MIGRATION_DATABASE_URL'));
   try {
     await migrate(pool);
     console.info('Database migrations are current.');

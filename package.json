@@ -24,8 +24,10 @@
     "test:e2e": "playwright test",
     "build:server": "npm run build -w @jce/shared && npm run build -w @jce/frontend && npm run build -w @jce/backend",
     "start:server": "node --env-file-if-exists=.env backend/dist/server.js",
-    "db:migrate": "node --env-file-if-exists=.env --import tsx backend/src/db/migrate.ts",
-    "db:bootstrap": "node scripts/deferred.mjs bootstrap L3",
+    "db:migrate": "node --env-file-if-exists=.local/migration.env --import tsx backend/src/db/migrate.ts",
+    "db:provision": "node --env-file-if-exists=.local/provision.env --import tsx backend/src/db/provision.ts",
+    "db:bootstrap": "node --env-file-if-exists=.local/migration.env --import tsx backend/src/db/bootstrap.ts",
+    "storage:check": "node --env-file-if-exists=.env --import tsx backend/src/jobs/storage-cli.ts",
     "db:seed:demo": "node scripts/deferred.mjs demo-seed L4",
     "build:desktop": "node scripts/deferred.mjs desktop L11",
     "verify:release": "npm run lint && npm run typecheck && npm run test:unit && npm run test:integration && npm run build:server && npm run test:e2e"

@@ -4,18 +4,20 @@ Business-specific answers and confirmations are stored only in `.local/business-
 
 Point-of-sale and general merchandise management system for JCE Dry Goods Trading.
 
-**L1 foundation implemented.** The React workspace, Express API, PostgreSQL migration checks, CI and tests are available. L0 rules and synthetic calculations are documented; real business records, hardware details and owner approval remain pending. Login, checkout and the Windows installer arrive in later milestones.
+**L2 database foundation implemented.** The React/Express shell now has schema upgrades, separate database roles, transaction/idempotency/decimal/numbering helpers, installation identities, immutable audit records, a local outbox and storage monitoring. Private L0 confirmations remain local; unresolved business rules and fixture approval remain open. Login, checkout and the Windows installer arrive in later milestones.
 
 ## Start locally
 
-Use Node **24.21.0**, npm **11.19.0** and PostgreSQL **18**. Create an empty development database, then run from this directory:
+Use Node **24.21.0**, npm **11.19.0** and PostgreSQL **18**. Create a dedicated empty development database (or adopt an L1-only database) and follow the [database setup runbook](docs/runbooks/database-foundation.md) to supply separate runtime, migrator and backup credentials. Then run from this directory:
 
 ```powershell
 npm ci
 Copy-Item .env.example .env
-# Set DATABASE_URL in .env to your development database.
+# Set runtime DATABASE_URL in .env and separate ignored provision/migration files.
 npm run build:server
+npm run db:provision
 npm run db:migrate
+npm run db:bootstrap
 npm run start:server
 ```
 
@@ -25,13 +27,14 @@ Open **http://127.0.0.1:3000**. Express serves the built UI without Vite. `npm r
 
 ```powershell
 $env:TEST_DATABASE_URL='postgresql://jce_test:your_password@127.0.0.1:5432/jce_pos_test'
+$env:PG_BIN_DIR='C:\Program Files\PostgreSQL\18\bin'
 npx playwright install chromium
 npm run verify:release
 ```
 
-The test database must be disposable and end in `_test`; tests modify its migration metadata. Verification covers lint/formatting, strict types, unit/HTTP boundaries, real PostgreSQL and production browser journeys.
+Tests require an administrator on a **dedicated disposable PostgreSQL cluster** and a database ending in `_test`. They recreate its public schema and create temporary roles/databases. PostgreSQL 18 client tools are needed for dump/restore verification. The pipeline covers formatting/lint, strict types, numerical and HTTP boundaries, PostgreSQL upgrades/concurrency/rollback/permissions/restore, and production browser journeys. It never uses real store data.
 
-See [implementation decisions](docs/decisions/0001-local-baseline.md), [workflow/approval proposals](docs/decisions/0002-workflows-and-approvals.md), [L0 evidence still needed](docs/acceptance/l0-evidence-register.md), [calculation fixtures](tests/fixtures/l0-money-stock.json) and [verification evidence](docs/acceptance/l1-verification.md).
+See [transactional decisions](docs/decisions/0004-transactional-foundation.md), [database setup](docs/runbooks/database-foundation.md), [storage/retention](docs/runbooks/storage-retention.md), [L2 verification](docs/acceptance/l2-verification.md), [L0 evidence checklist](docs/acceptance/l0-evidence-register.md) and [synthetic calculation fixtures](tests/fixtures/l0-money-stock.json).
 
 ## Project documents
 
@@ -48,4 +51,4 @@ See [implementation decisions](docs/decisions/0001-local-baseline.md), [workflow
 
 The stack is React and TypeScript, a Node.js REST API, PostgreSQL, and a later Electron Windows client. The initial installation uses one local branch server shared by browser and desktop clients. Render later provides central management and synchronization.
 
-The `frontend`, `backend`, `shared` and reserved `desktop` workspaces share one lockfile. `db:bootstrap`, `db:seed:demo` and `build:desktop` currently fail explicitly with their target milestone. `jce-website` remains separate.
+The `frontend`, `backend`, `shared` and reserved `desktop` workspaces share one lockfile. `db:bootstrap` initializes the installation identity, not a user account. `db:seed:demo` and `build:desktop` remain explicitly deferred. `jce-website` stays separate. No cloud transport is enabled.

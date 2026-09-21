@@ -2,7 +2,7 @@
 
 Business-specific answers and confirmations are stored only in `.local/business-intake/`, which Git ignores. This shared document contains generic planning guidance; consult the local records before applying defaults or requesting an already-recorded decision.
 
-Status (2026-09-21): L0 working decisions and synthetic fixtures documented; owner evidence/approval remains pending. L1 application shell implemented and locally verified. L2-L13 have not started.
+Status (2026-09-21): L0 working decisions and synthetic fixtures documented; actual confirmations stay in ignored local records and unresolved evidence/approval remains open. L1 application shell and L2 database/transaction foundation implemented and locally verified. L3-L13 have not started.
 
 Prepared: 2026-09-20. Source of scope: [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -10,7 +10,7 @@ Prepared: 2026-09-20. Source of scope: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## 1. Current state and delivery boundary
 
-At the start of planning, the project contained the architecture document and an empty README. L1 now provides application packages, migration compatibility metadata, tests and CI. Business modules and installers remain future work. See [L0 evidence](docs/acceptance/l0-evidence-register.md) and [L1 verification](docs/acceptance/l1-verification.md).
+At the start of planning, the project contained the architecture document and an empty README. L1 provides application packages, tests and CI; L2 adds database roles, schema upgrades, installation/branch/terminal identities, transactional helpers, audit/outbox storage and monitoring. Business modules and installers remain future work. See the [L0 checklist](docs/acceptance/l0-evidence-register.md), [L1 verification](docs/acceptance/l1-verification.md) and [L2 verification](docs/acceptance/l2-verification.md).
 
 Local production includes all store operations: authentication, permissions, branches, catalog, inventory, purchasing, suppliers, customers, checkout, returns, transfers, reports, logs, settings, Windows installation, printing, backup, restore, and maintenance.
 
@@ -113,7 +113,7 @@ jce-pos/
   .github/workflows/ci.yml
 ```
 
-L1 defines these root script contracts: `dev`, `lint`, `typecheck`, `test:unit`, `test:integration`, `test:e2e`, `build:server`, `start:server`, `db:migrate`, `db:bootstrap`, `db:seed:demo`, `build:desktop`, and `verify:release`. `build:server` builds shared contracts, frontend assets, then backend JavaScript; it excludes Electron packaging. Bootstrap, demo seeding and desktop packaging currently exit with explicit deferred-milestone errors. See the [development runbook](docs/runbooks/development.md).
+Root script contracts include `dev`, `lint`, `typecheck`, `test:unit`, `test:integration`, `test:e2e`, `build:server`, `start:server`, `db:migrate`, `db:bootstrap`, `db:seed:demo`, `build:desktop`, and `verify:release`. L2 adds `db:provision` and `storage:check`; `db:bootstrap` initializes installation identity (user enrollment remains L3). `build:server` builds shared contracts, frontend assets, then backend JavaScript; it excludes Electron packaging. Demo seeding and desktop packaging still exit with explicit deferred-milestone errors. See the [development runbook](docs/runbooks/development.md).
 
 Keep business logic in backend services. Frontend calculations are previews; the server recalculates financial and stock effects. Share request/response contracts, not database credentials or trusted authorization decisions.
 
@@ -205,13 +205,15 @@ Evidence: [L1 verification](docs/acceptance/l1-verification.md). This milestone 
 
 ### L2. Build database and transactional foundations
 
-- [ ] Implement ordered migrations, checksum tracking, a migration lock, clean database setup, and upgrade tests from the previous schema.
-- [ ] Separate runtime, migration and backup credentials. Provide a one-time bootstrap command; keep demo data out of production migrations.
-- [ ] Add shared transaction, idempotency, decimal, document numbering and audit helpers.
-- [ ] Implement UUID installation identity, branch ownership, terminal identity, and an outbox insertion helper used within business transactions.
-- [ ] Give outbox events an event UUID, origin installation, branch, aggregate ID/type/version, schema version, event type, payload, occurrence time and checksum. Queue delivery remains disabled locally.
-- [ ] Protect immutable ledgers from ordinary edits and test transaction rollback at each critical write step.
-- [ ] Define local retention and disk monitoring. Do not purge unsynchronized events; measure their growth and document the later snapshot/acknowledgement handoff.
+- [x] Implement ordered migrations, checksum tracking, a migration lock, clean database setup, and upgrade tests from the previous schema. Schema 2 preserves schema 1 history; failed migration DDL rolls back.
+- [x] Separate runtime, migration and backup credentials. Provide a one-time bootstrap command; keep demo data out of production migrations. `db:provision` establishes roles; repeatable `db:bootstrap` preserves the singleton installation identity.
+- [x] Add shared transaction, idempotency, decimal, document numbering and audit helpers. Decimal settlement requires an explicit policy; unresolved business rounding rules remain unresolved.
+- [x] Implement UUID installation identity, branch ownership, terminal identity, and an outbox insertion helper used within business transactions.
+- [x] Give outbox events an event UUID, origin installation, branch, aggregate ID/type/version, schema version, event type, payload, occurrence time and checksum. Queue delivery remains disabled locally.
+- [x] Protect immutable ledgers from ordinary edits and test transaction rollback at each critical write step. Foundation audit/number history is protected; test-only sale/payment/movement/balance tables prove shared atomicity. Actual inventory and financial ledgers arrive with L5/L7 and must reuse these controls.
+- [x] Define local retention and disk monitoring. Do not purge unsynchronized events; measure their growth and document the later snapshot/acknowledgement handoff. No purge or network transport is enabled.
+
+Evidence: [L2 verification](docs/acceptance/l2-verification.md). Technical choices: [ADR 0004](docs/decisions/0004-transactional-foundation.md). Operators: [database setup](docs/runbooks/database-foundation.md) and [storage/retention](docs/runbooks/storage-retention.md). This phase does not implement or qualify live checkout, business-role authorization, encrypted scheduled backup or complete store recovery.
 
 **Exit:** failed operations leave no partial stock/money/audit/outbox changes; duplicate requests resolve to one operation; identifiers survive backup/restore and prepare for branch synchronization.
 

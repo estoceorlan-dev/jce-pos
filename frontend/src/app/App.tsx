@@ -14,7 +14,7 @@ import {
 import { getJson } from '../api/client';
 import { DataTable, StatePanel, TextField } from '../components/ui';
 
-// No authenticated session exists in L1. Default deny; L3 supplies server grants.
+// No authenticated session exists in L2. Default deny; L3 supplies server grants.
 const permissions: readonly Permission[] = [];
 const stationSchema = z.object({
   label: z
@@ -45,7 +45,7 @@ function Overview() {
           <h1>Ready for the next chapter.</h1>
           <p className="lede">Your local store workspace is taking shape.</p>
         </div>
-        <span className="phase-tag">Foundation · L1</span>
+        <span className="phase-tag">Database foundation · L2</span>
       </div>
       <section className="welcome">
         <div>

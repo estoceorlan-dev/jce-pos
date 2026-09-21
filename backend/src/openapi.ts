@@ -8,7 +8,7 @@ export const openapi = {
     title: 'JCE POS API',
     version: APP_VERSION,
     description:
-      'L1 application shell. Business endpoints and server sessions arrive in later phases.',
+      'L2 application and database foundation. Business endpoints and server sessions arrive in later phases.',
   },
   servers: [{ url: '/' }],
   paths: {

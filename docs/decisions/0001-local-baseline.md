@@ -2,7 +2,7 @@
 
 Business-specific answers and confirmations are stored only in `.local/business-intake/`, which Git ignores. This shared document contains generic planning guidance; consult the local records before applying defaults or requesting an already-recorded decision.
 
-Date: 2026-09-21. Technical baseline adopted for L1 under the instruction to proceed with L0–L1. Business rules below are proposals awaiting owner validation.
+Date: 2026-09-21. Technical baseline adopted for L1 under the instruction to proceed with L0–L1. [ADR 0004](0004-transactional-foundation.md) updates the database/credential baseline for L2. Business rules below remain generic proposals; actual confirmations are private.
 
 ## Scope and runtime
 
@@ -12,7 +12,7 @@ Include all local modules in the implementation plan. Exclude e-commerce, paymen
 
 Pin Node **24.21.0**, npm **11.19.0** and exact direct dependencies with one root lockfile. The isolated Node runtime archive was checked against the official SHA-256 list. React 19.3.0, Vite 8.3.0 and Express 5 are verified together by build/browser checks. Sources: [Vite setup](https://vite.dev/guide/), [Express installation](https://expressjs.com/en/starter/installing/), [official Node distribution](https://nodejs.org/dist/v24.21.0/).
 
-Zod contracts, React Router, TanStack Query and React Hook Form support the UI. The server owns calculations and authorization. Ordered SQL migrations use a transaction, advisory lock and checksums. L1 only introduces migration metadata; L2 owns domain tables. The server never auto-migrates and readiness requires exact migration compatibility. A separate migration credential is supported.
+Zod contracts, React Router, TanStack Query and React Hook Form support the UI. The server owns calculations and authorization. Ordered SQL migrations use a transaction, advisory lock and checksums. L1 introduced migration metadata; L2 adds identity/transaction/audit/outbox foundation tables, with business-domain tables arriving in their respective phases. The server never auto-migrates and readiness requires exact migration compatibility. Separate runtime, migration and backup credentials are now required by the L2 setup workflow.
 
 Express serves the production build without Vite. Default bind is loopback. LAN HTTPS, service supervision, log rotation and Windows installation arrive in L11. Electron packaging, account bootstrap and demo seeds fail explicitly with the milestone still needed. No fake account/session is introduced.
 
