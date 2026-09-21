@@ -42,9 +42,9 @@ npm run db:bootstrap
 npm run start:server
 ```
 
-Migrate uses only `MIGRATION_DATABASE_URL`, never a fallback to runtime credentials. Bootstrap initializes installation identity and its audit/outbox records; repeating it returns the same identity without duplicates. It does **not** create an administrator user or sample branches. L3 supplies user/account setup. A normal runtime process cannot create or replace the installation identity.
+Migrate uses only `MIGRATION_DATABASE_URL`, never a fallback to runtime credentials. Bootstrap initializes installation identity and its audit/outbox records; repeating it returns the same identity without duplicates. It does **not** create an administrator user or sample branches. Use the separate `auth:bootstrap` command for a supplied administrator secret; see [accounts/catalog setup](accounts-and-catalog.md). A normal runtime process cannot create or replace the installation identity.
 
-Open `http://127.0.0.1:3000`. Liveness is independent of database availability. Readiness requires the configured runtime role and exact migration compatibility. Configure `STORAGE_MONITOR_PATH` to an existing directory on the database volume for free-space alerts; the monitor does not assume that the application directory uses that disk.
+For built-server development set `APP_ORIGIN=http://127.0.0.1:3000` and explicit loopback mode, then open that address. Production/LAN requires HTTPS. Startup requires the reachable restricted runtime role; after startup liveness is independent of database availability. Readiness requires the configured runtime role and exact migration compatibility. Configure `STORAGE_MONITOR_PATH` to an existing directory on the database volume for free-space alerts; the monitor does not assume that the application directory uses that disk.
 
 ## Upgrade from L1
 
@@ -75,6 +75,6 @@ npx playwright install chromium
 npm run verify:release
 ```
 
-The suite leaves the dedicated test database migrated and initialized. Playwright derives its synthetic runtime credential from the test database name and never starts the server using the test administrator. Run the integration suite first when invoking browser tests alone. Synthetic test credentials are committed solely for isolated test infrastructure and must never be used for an installation.
+The suite leaves the dedicated test database migrated and initialized. Playwright derives its synthetic runtime credential from the test database name and never starts the server using the test administrator. Browser tests prepare the disposable database before starting their server; build the server first and never run both suites concurrently on the same database. Synthetic test credentials are committed solely for isolated test infrastructure and must never be used for an installation.
 
 CI installs PostgreSQL 18 client tools using the [official PostgreSQL Ubuntu repository](https://www.postgresql.org/download/linux/ubuntu/), then runs the same checks against its disposable service.

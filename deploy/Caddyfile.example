@@ -1,0 +1,6 @@
+# Copy to an ignored/local deployment directory and choose a LAN DNS name.
+# Trust the local CA certificate on each client; never bypass TLS validation.
+pos.internal {
+    tls internal
+    reverse_proxy 127.0.0.1:3000
+}

@@ -8,6 +8,33 @@ import { requireTransaction, type Transaction } from '../db/transaction.js';
 const eventSchema = z.discriminatedUnion('eventType', [
   z
     .object({
+      eventType: z.literal('master.changed'),
+      aggregateType: z.literal('master'),
+      payload: z
+        .object({
+          entityId: z.uuid(),
+          kind: z.enum([
+            'user',
+            'role',
+            'branch',
+            'register',
+            'settings',
+            'category',
+            'brand',
+            'unit',
+            'tax',
+            'variant',
+            'price',
+            'supplier',
+            'customer',
+            'import',
+          ]),
+        })
+        .strict(),
+    })
+    .strict(),
+  z
+    .object({
       eventType: z.literal('installation.created'),
       aggregateType: z.literal('installation'),
       payload: z.object({ installationId: z.uuid() }).strict(),
@@ -47,11 +74,13 @@ export async function appendOutbox(
   const scope = contextSchema.parse(context);
   const event = eventSchema.parse(input);
   const entityId =
-    event.eventType === 'installation.created'
-      ? event.payload.installationId
-      : event.eventType === 'branch.created'
-        ? event.payload.branchId
-        : event.payload.terminalId;
+    event.eventType === 'master.changed'
+      ? event.payload.entityId
+      : event.eventType === 'installation.created'
+        ? event.payload.installationId
+        : event.eventType === 'branch.created'
+          ? event.payload.branchId
+          : event.payload.terminalId;
   if (
     entityId !== scope.aggregateId ||
     (event.eventType === 'installation.created' &&

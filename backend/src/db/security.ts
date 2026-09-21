@@ -187,3 +187,35 @@ export async function grantFoundationAccess(client: pg.PoolClient) {
   );
   // No runtime DELETE/TRUNCATE/DDL or outbox delivery permissions. Transport disabled.
 }
+
+export async function grantManagementAccess(
+  client: pg.PoolClient,
+  version: number,
+) {
+  const runtime = quoteIdentifier((await securityRoles(client)).runtime_role);
+  await client.query(
+    `GRANT SELECT ON users,roles,permissions,role_permissions,user_roles,branch_users,user_sessions,login_throttles,login_logs,business_settings,branch_settings,settings_history,registers TO ${runtime}`,
+  );
+  await client.query(
+    `GRANT INSERT,UPDATE ON users,user_sessions,login_throttles,branch_settings,registers TO ${runtime}`,
+  );
+  await client.query(`GRANT UPDATE ON business_settings,roles TO ${runtime}`);
+  await client.query(
+    `GRANT INSERT,DELETE ON user_roles,branch_users,role_permissions TO ${runtime}`,
+  );
+  await client.query(
+    `GRANT INSERT ON login_logs,settings_history TO ${runtime}`,
+  );
+  if (version >= 4) {
+    await client.query(
+      `GRANT SELECT ON product_categories,product_brands,product_units,tax_codes,tax_code_history,products,product_variants,product_barcodes,product_prices,product_price_history,suppliers,customers,customer_transactions,catalog_imports TO ${runtime}`,
+    );
+    await client.query(
+      `GRANT INSERT,UPDATE ON product_categories,product_brands,product_units,tax_codes,products,product_variants,product_prices,suppliers,customers,catalog_imports TO ${runtime}`,
+    );
+    await client.query(`GRANT INSERT,DELETE ON product_barcodes TO ${runtime}`);
+    await client.query(
+      `GRANT INSERT ON tax_code_history,product_price_history TO ${runtime}`,
+    );
+  }
+}

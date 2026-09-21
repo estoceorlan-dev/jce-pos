@@ -1,4 +1,5 @@
 import { APP_VERSION } from '@jce/shared';
+import { managementPaths } from './management/openapi.js';
 const json = (schema: object) => ({
   content: { 'application/json': { schema } },
 });
@@ -8,10 +9,11 @@ export const openapi = {
     title: 'JCE POS API',
     version: APP_VERSION,
     description:
-      'L2 application and database foundation. Business endpoints and server sessions arrive in later phases.',
+      'L3/L4 identity, branch administration and master data. HTTPS opaque sessions, origin/CSRF checks, live permissions and branch membership. Checkout, stock posting and reports follow in later phases.',
   },
   servers: [{ url: '/' }],
   paths: {
+    ...managementPaths,
     '/health/live': {
       get: {
         summary: 'Process liveness',
@@ -69,6 +71,15 @@ export const openapi = {
     },
   },
   components: {
+    securitySchemes: {
+      session: {
+        type: 'apiKey',
+        in: 'cookie',
+        name: '__Host-jce_session',
+        description:
+          'Secure HttpOnly SameSite=Strict cookie. Explicit development loopback uses jce_session.',
+      },
+    },
     schemas: {
       Readiness: {
         type: 'object',

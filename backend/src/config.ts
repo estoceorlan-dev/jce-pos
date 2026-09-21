@@ -17,6 +17,8 @@ const envSchema = z.object({
   HOST: z.string().min(1).default('127.0.0.1'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   DATABASE_URL: databaseUrl,
+  APP_ORIGIN: z.string().url().default('https://localhost'),
+  ALLOW_INSECURE_LOOPBACK: z.enum(['true', 'false']).default('false'),
   STORAGE_MONITOR_PATH: z.string().min(1).optional(),
   STORAGE_MIN_FREE_BYTES: z.coerce
     .number()
@@ -35,5 +37,21 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
       `Invalid configuration: ${[...new Set(result.error.issues.map((issue) => issue.path.join('.')))].join(', ')}. Check .env.example.`,
     );
   }
-  return result.data;
+  const data = result.data;
+  const origin = new URL(data.APP_ORIGIN);
+  if (origin.origin !== data.APP_ORIGIN || origin.username || origin.password)
+    throw new Error('APP_ORIGIN must contain only scheme, host and port.');
+  if (data.ALLOW_INSECURE_LOOPBACK === 'true') {
+    if (
+      data.NODE_ENV === 'production' ||
+      !['127.0.0.1', 'localhost', '::1'].includes(data.HOST) ||
+      origin.protocol !== 'http:' ||
+      !['127.0.0.1', 'localhost', '[::1]'].includes(origin.hostname)
+    )
+      throw new Error(
+        'Insecure mode is restricted to explicit development/test loopback.',
+      );
+  } else if (origin.protocol !== 'https:')
+    throw new Error('APP_ORIGIN requires HTTPS.');
+  return data;
 }

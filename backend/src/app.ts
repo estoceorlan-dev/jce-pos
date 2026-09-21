@@ -7,6 +7,11 @@ import helmet from 'helmet';
 import type { Logger } from 'pino';
 import { APP_VERSION, SCHEMA_VERSION } from '@jce/shared';
 import { openapi } from './openapi.js';
+import type pg from 'pg';
+import { ZodError } from 'zod';
+import { managementRouter } from './management/router.js';
+import { HttpError } from './management/common.js';
+import type { AuthOptions } from './auth/service.js';
 
 export const defaultFrontend = fileURLToPath(
   new URL('../../frontend/dist', import.meta.url),
@@ -15,13 +20,16 @@ export function createApp({
   ready,
   logger,
   frontendDir = defaultFrontend,
+  database,
 }: {
   ready: () => Promise<boolean>;
   logger: Logger;
   frontendDir?: string;
+  database?: { pool: pg.Pool; auth: AuthOptions };
 }) {
   const app = express();
   app.disable('x-powered-by');
+  app.set('trust proxy', 'loopback');
   app.use((req, res, next) => {
     const requestId = randomUUID();
     res.locals['requestId'] = requestId;
@@ -43,8 +51,16 @@ export function createApp({
   });
   app.use(
     helmet({
-      strictTransportSecurity: false,
-      contentSecurityPolicy: { directives: { upgradeInsecureRequests: null } },
+      strictTransportSecurity:
+        database && !database.auth.insecureLoopback
+          ? { maxAge: 31536000 }
+          : false,
+      contentSecurityPolicy: {
+        directives: {
+          upgradeInsecureRequests:
+            database && !database.auth.insecureLoopback ? [] : null,
+        },
+      },
     }),
   );
   app.use(express.json({ limit: '64kb' }));
@@ -76,6 +92,8 @@ export function createApp({
   app.get('/api/v1/openapi.json', (_req, res) => {
     res.json(openapi);
   });
+  if (database)
+    app.use('/api/v1', managementRouter(database.pool, database.auth));
   const notFound: express.RequestHandler = (_req, res) => {
     res.status(404).json({
       error: {
@@ -101,7 +119,40 @@ export function createApp({
   });
   app.use(notFound);
   const onError: ErrorRequestHandler = (error: unknown, _req, res, _next) => {
+    if (error instanceof HttpError) {
+      if (error.status === 429) res.setHeader('Retry-After', '900');
+      res.status(error.status).json({
+        error: {
+          code: error.code,
+          message: error.message,
+          requestId: res.locals['requestId'],
+        },
+      });
+      return;
+    }
+    if (error instanceof ZodError) {
+      res.status(400).json({
+        error: {
+          code: 'INVALID_REQUEST',
+          message: 'Check the supplied fields.',
+          fields: [...new Set(error.issues.map((i) => i.path.join('.')))],
+          requestId: res.locals['requestId'],
+        },
+      });
+      return;
+    }
     const known = error as { status?: number; code?: string; type?: string };
+    if (['23505', '23503', '23514', '22003'].includes(known.code ?? '')) {
+      res.status(409).json({
+        error: {
+          code: 'CONFLICT',
+          message:
+            'Duplicate, referenced, or protected record. Reload and check your changes.',
+          requestId: res.locals['requestId'],
+        },
+      });
+      return;
+    }
     const status =
       known.status === 413 ? 413 : known.status === 400 ? 400 : 500;
     const code =

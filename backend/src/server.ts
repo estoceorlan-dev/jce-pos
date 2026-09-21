@@ -23,12 +23,27 @@ try {
       'database connection interrupted',
     ),
   );
+  try {
+    await assertDatabaseRole(pool, 'runtime');
+  } catch {
+    await pool.end();
+    throw new Error(
+      'Startup requires the configured, reachable unprivileged runtime database role.',
+    );
+  }
   const app = createApp({
     ready: async () => {
       await assertDatabaseRole(pool, 'runtime');
       return isReady(pool);
     },
     logger,
+    database: {
+      pool,
+      auth: {
+        origin: config.APP_ORIGIN,
+        insecureLoopback: config.ALLOW_INSECURE_LOOPBACK === 'true',
+      },
+    },
   });
   const stopMonitoring = monitorStorage(
     pool,

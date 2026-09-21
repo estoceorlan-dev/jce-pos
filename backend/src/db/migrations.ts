@@ -2,7 +2,11 @@ import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import type pg from 'pg';
 import { SCHEMA_VERSION } from '@jce/shared';
-import { assertDatabaseRole, grantFoundationAccess } from './security.js';
+import {
+  assertDatabaseRole,
+  grantFoundationAccess,
+  grantManagementAccess,
+} from './security.js';
 
 const directory = new URL('../../migrations/', import.meta.url);
 export async function migrationFiles() {
@@ -94,6 +98,7 @@ export async function migrate(
       );
     }
     if (target >= 2) await grantFoundationAccess(client);
+    if (target >= 3) await grantManagementAccess(client, target);
     await client.query('COMMIT');
   } catch (error) {
     await client.query('ROLLBACK');

@@ -4,7 +4,7 @@ Business-specific answers and confirmations are stored only in `.local/business-
 
 Point-of-sale and general merchandise management system for JCE Dry Goods Trading.
 
-**L2 database foundation implemented.** The React/Express shell now has schema upgrades, separate database roles, transaction/idempotency/decimal/numbering helpers, installation identities, immutable audit records, a local outbox and storage monitoring. Private L0 confirmations remain local; unresolved business rules and fixture approval remain open. Login, checkout and the Windows installer arrive in later milestones.
+**L3/L4 accounts and master data implemented.** The application includes secure local sessions, roles and branch access, users/settings/register configuration, products and variants, branch prices/history, customers/suppliers and staged CSV imports. Private business confirmations remain local. Owner approval, real merchandise/hardware qualification, inventory, checkout and Windows packaging remain later acceptance work. See [L3/L4 verification](docs/acceptance/l3-l4-verification.md).
 
 ## Start locally
 
@@ -14,14 +14,17 @@ Use Node **24.21.0**, npm **11.19.0** and PostgreSQL **18**. Create a dedicated 
 npm ci
 Copy-Item .env.example .env
 # Set runtime DATABASE_URL in .env and separate ignored provision/migration files.
+# For the built development server set APP_ORIGIN=http://127.0.0.1:3000.
 npm run build:server
 npm run db:provision
 npm run db:migrate
 npm run db:bootstrap
+# Supply your administrator credentials in ignored .local/admin.env.
+npm run auth:bootstrap
 npm run start:server
 ```
 
-Open **http://127.0.0.1:3000**. Express serves the built UI without Vite. `npm run dev` starts the development UI at port 5173. See the [development runbook](docs/runbooks/development.md) for configuration, script contracts and troubleshooting.
+Open **http://127.0.0.1:3000** for explicit development loopback mode. Express serves the built UI without Vite. `npm run dev` uses origin `http://127.0.0.1:5173`. LAN and production require HTTPS. Follow the [accounts/catalog runbook](docs/runbooks/accounts-and-catalog.md) for administrator bootstrap, HTTPS, branch setup and imports, and the [development runbook](docs/runbooks/development.md) for script contracts.
 
 ## Verify
 
@@ -51,4 +54,4 @@ See [transactional decisions](docs/decisions/0004-transactional-foundation.md), 
 
 The stack is React and TypeScript, a Node.js REST API, PostgreSQL, and a later Electron Windows client. The initial installation uses one local branch server shared by browser and desktop clients. Render later provides central management and synchronization.
 
-The `frontend`, `backend`, `shared` and reserved `desktop` workspaces share one lockfile. `db:bootstrap` initializes the installation identity, not a user account. `db:seed:demo` and `build:desktop` remain explicitly deferred. `jce-website` stays separate. No cloud transport is enabled.
+The `frontend`, `backend`, `shared` and reserved `desktop` workspaces share one lockfile. `db:bootstrap` initializes installation identity; `auth:bootstrap` creates the first administrator from supplied credentials. Optional `db:seed:demo` is restricted to empty disposable demo/test databases. `build:desktop` remains deferred to L11. `jce-website` stays separate. No cloud transport is enabled.

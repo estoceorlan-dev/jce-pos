@@ -2,7 +2,7 @@
 
 Business-specific answers and confirmations are stored only in `.local/business-intake/`, which Git ignores. This shared document contains generic planning guidance; consult the local records before applying defaults or requesting an already-recorded decision.
 
-Status (2026-09-21): L0 working decisions and synthetic fixtures documented; actual confirmations stay in ignored local records and unresolved evidence/approval remains open. L1 application shell and L2 database/transaction foundation implemented and locally verified. L3-L13 have not started.
+Status (2026-09-22): L0 working decisions and synthetic fixtures documented; actual confirmations stay in ignored local records and unresolved evidence/approval remains open. L1-L4 application, database, authentication and master-data implementation is complete with local automated verification. L3/L4 owner, real-data/hardware and packaged-desktop acceptance gates remain open. L5-L13 have not started.
 
 Prepared: 2026-09-20. Source of scope: [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -10,7 +10,7 @@ Prepared: 2026-09-20. Source of scope: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## 1. Current state and delivery boundary
 
-At the start of planning, the project contained the architecture document and an empty README. L1 provides application packages, tests and CI; L2 adds database roles, schema upgrades, installation/branch/terminal identities, transactional helpers, audit/outbox storage and monitoring. Business modules and installers remain future work. See the [L0 checklist](docs/acceptance/l0-evidence-register.md), [L1 verification](docs/acceptance/l1-verification.md) and [L2 verification](docs/acceptance/l2-verification.md).
+At the start of planning, the project contained the architecture document and an empty README. L1 provides application packages, tests and CI; L2 adds database roles, schema upgrades, installation/branch/terminal identities, transactional helpers, audit/outbox storage and monitoring. L3/L4 add secure accounts, branch administration/settings, catalog/partner records and staged CSV imports; inventory, financial operations and installers remain future work. See the [L0 checklist](docs/acceptance/l0-evidence-register.md), [L1 verification](docs/acceptance/l1-verification.md) and [L2 verification](docs/acceptance/l2-verification.md).
 
 Local production includes all store operations: authentication, permissions, branches, catalog, inventory, purchasing, suppliers, customers, checkout, returns, transfers, reports, logs, settings, Windows installation, printing, backup, restore, and maintenance.
 
@@ -113,7 +113,7 @@ jce-pos/
   .github/workflows/ci.yml
 ```
 
-Root script contracts include `dev`, `lint`, `typecheck`, `test:unit`, `test:integration`, `test:e2e`, `build:server`, `start:server`, `db:migrate`, `db:bootstrap`, `db:seed:demo`, `build:desktop`, and `verify:release`. L2 adds `db:provision` and `storage:check`; `db:bootstrap` initializes installation identity (user enrollment remains L3). `build:server` builds shared contracts, frontend assets, then backend JavaScript; it excludes Electron packaging. Demo seeding and desktop packaging still exit with explicit deferred-milestone errors. See the [development runbook](docs/runbooks/development.md).
+Root script contracts include `dev`, `lint`, `typecheck`, `test:unit`, `test:integration`, `test:e2e`, `build:server`, `start:server`, `db:migrate`, `db:bootstrap`, `db:seed:demo`, `build:desktop`, and `verify:release`. L2 adds `db:provision` and `storage:check`; `db:bootstrap` initializes installation identity; L3 adds `auth:bootstrap` with supplied administrator credentials. `build:server` builds shared contracts, frontend assets, then backend JavaScript; it excludes Electron packaging. L4 adds synthetic demo seeding for an empty disposable database; desktop packaging still exits with an explicit L11 deferral. See the [development runbook](docs/runbooks/development.md).
 
 Keep business logic in backend services. Frontend calculations are previews; the server recalculates financial and stock effects. Share request/response contracts, not database credentials or trusted authorization decisions.
 
@@ -219,22 +219,26 @@ Evidence: [L2 verification](docs/acceptance/l2-verification.md). Technical choic
 
 ### L3. Deliver authentication, users, branches and settings
 
-- [ ] Implement bootstrap administrator creation with a supplied secret, login/logout, password change/reset by an authorized administrator, session expiry, lock screen, account disable and login history.
-- [ ] Persist sessions in PostgreSQL; use secure HttpOnly SameSite cookies, CSRF protection and origin checks for writes. Use local HTTPS for LAN clients; allow any insecure development mode only on development loopback.
-- [ ] Add login throttling, bounded request sizes, secure headers, safe SQL parameters and redaction of secrets.
-- [ ] Implement roles and granular permissions; prevent a branch manager from granting privileges or branch access they do not hold. Prevent accidental removal of the last recovery administrator.
-- [ ] Deliver branch CRUD, memberships, branch switcher, terminal/register configuration, and branch-scoped settings. Archive referenced branches/users instead of deleting history.
-- [ ] Deliver business identity, currency/date display, receipt settings, tax codes, allowed payment methods, discount thresholds and printer preferences. Record settings changes with history.
+- [x] Implement bootstrap administrator creation with a supplied secret, login/logout, password change/reset by an authorized administrator, session expiry, lock screen, account disable and login history.
+- [x] Persist sessions in PostgreSQL; use secure HttpOnly SameSite cookies, CSRF protection and origin checks for writes. Use local HTTPS for LAN clients; allow any insecure development mode only on development loopback.
+- [x] Add login throttling, bounded request sizes, secure headers, safe SQL parameters and redaction of secrets.
+- [x] Implement roles and granular permissions; prevent a branch manager from granting privileges or branch access they do not hold. Prevent accidental removal of the last recovery administrator.
+- [x] Deliver branch CRUD, memberships, branch switcher, terminal/register configuration, and branch-scoped settings. Archive referenced branches/users instead of deleting history.
+- [x] Deliver business identity, currency/date display, receipt settings, tax codes, allowed payment methods, discount thresholds and printer preferences. Record settings changes with history.
+
+Implementation evidence: [L3/L4 verification](docs/acceptance/l3-l4-verification.md), [operator runbook](docs/runbooks/accounts-and-catalog.md), and [ADR 0005](docs/decisions/0005-identity-and-master-data.md). Current API tests cover implemented branch routes, nested references and exports. Real LAN certificate trust and packaged desktop verification remain L11 gates; transaction/report authorization is retested when those modules exist.
 
 **Exit:** authorization integration tests deny direct API access to another branch's transactions, reports and exports; disabled accounts lose local access; approved branch switching works in browser and desktop shell.
 
 ### L4. Deliver catalog and business master data
 
-- [ ] Build products, variants, categories, brands, units, barcode aliases, base-unit conversions, branch prices and price history.
-- [ ] Support search by barcode, SKU and name, uniqueness checks, archive/reactivate, low-stock thresholds and permitted fractional quantities.
-- [ ] Implement supplier and customer CRUD/search/archive, a walk-in customer flow and permission-controlled contact information. Customer history links to posted sales/refunds.
-- [ ] Build catalog CSV templates and staged imports: parse, validate, preview, duplicate policy, error report, idempotent commit and audit. Opening stock is posted through L5, not written into balances here.
-- [ ] Keep imported customer data and generated CSV safe for spreadsheet use; escape formula-like cells on export.
+- [x] Build products, variants, categories, brands, units, barcode aliases, base-unit conversions, branch prices and price history.
+- [x] Support search by barcode, SKU and name, uniqueness checks, archive/reactivate, low-stock thresholds and permitted fractional quantities.
+- [x] Implement supplier and customer CRUD/search/archive, a walk-in customer flow and permission-controlled contact information. Customer history has a scoped read endpoint and source-link storage; actual posted sale/refund integration is exercised with L7/L8.
+- [x] Build catalog CSV templates and staged imports: parse, validate, preview, duplicate policy, error report, idempotent commit and audit. Opening stock is posted through L5, not written into balances here.
+- [x] Keep imported customer data and generated CSV safe for spreadsheet use; escape formula-like cells on export.
+
+Implementation is verified with synthetic CSV, keyboard barcode, pricing and editing journeys. Real merchandise samples and scanner qualification remain pending; no opening stock or real business records were imported.
 
 **Exit:** real sample merchandise can be imported, scanned, priced and edited without ambiguous SKUs or unintended changes to posted history.
 

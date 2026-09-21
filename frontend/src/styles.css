@@ -34,6 +34,114 @@ button:hover,
 .button:hover {
   filter: brightness(1.08);
 }
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.secondary {
+  background: #edf2e8;
+  color: #234b3e;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.actions button {
+  font-size: 12px;
+  padding: 7px 10px;
+}
+.record-form {
+  padding: 24px;
+  margin: 24px 0;
+  border: 1px solid #dfe5db;
+  border-radius: 8px;
+  background: white;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 24px;
+}
+.form-grid .wide {
+  grid-column: 1 / -1;
+}
+select,
+textarea {
+  font: inherit;
+  border: 1px solid #a9b6a7;
+  padding: 9px;
+  border-radius: 5px;
+  max-width: 100%;
+}
+.field select,
+.field textarea {
+  width: 100%;
+  margin-bottom: 15px;
+}
+.field textarea {
+  min-height: 90px;
+}
+.field input[type='checkbox'] {
+  width: auto;
+  margin-right: 8px;
+}
+.check-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: end;
+  margin: 22px 0;
+}
+.toolbar label,
+.record-form > label {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.toolbar input {
+  border: 1px solid #a9b6a7;
+  padding: 9px;
+  border-radius: 5px;
+}
+.history {
+  margin-top: 24px;
+}
+.sidebar {
+  overflow-y: auto;
+}
+td {
+  overflow-wrap: anywhere;
+  max-width: 360px;
+}
+.topbar {
+  height: auto;
+  min-height: 82px;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+@media (max-width: 650px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  nav {
+    flex-wrap: wrap;
+  }
+  .topbar .actions {
+    width: 100%;
+  }
+  .record-form {
+    padding: 18px;
+  }
+}
 :focus-visible {
   outline: 3px solid #bc7b24;
   outline-offset: 4px;
@@ -435,6 +543,13 @@ td:last-child {
 .skip-link:focus {
   top: 10px;
 }
+.skip-link:not(:focus) {
+  clip-path: inset(50%);
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  white-space: nowrap;
+}
 @media (min-width: 1500px) {
   main {
     padding-top: 55px;
@@ -495,10 +610,23 @@ td:last-child {
   }
   nav {
     display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
     margin-top: 20px;
   }
   nav a {
+    flex-shrink: 0;
     padding: 8px 12px;
+  }
+  .table-scroll table {
+    min-width: 640px;
+  }
+  .table-scroll td {
+    min-width: 70px;
+  }
+  .history .table-scroll table {
+    min-width: 400px;
   }
   .topbar {
     height: 64px;

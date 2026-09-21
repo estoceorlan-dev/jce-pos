@@ -1,14 +1,15 @@
 import { z } from 'zod';
+import { managedPermissions } from './management.js';
 
 export const APP_VERSION = '0.1.0';
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 4;
+export * from './management.js';
 export const permissionSchema = z.enum([
-  'catalog.read',
+  ...managedPermissions,
   'inventory.read',
   'sales.read',
   'checkout.use',
   'reports.read',
-  'settings.manage',
 ]);
 export type Permission = z.infer<typeof permissionSchema>;
 export const paginationSchema = z
