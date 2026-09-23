@@ -28,6 +28,7 @@
     "db:provision": "node --env-file-if-exists=.local/provision.env --import tsx backend/src/db/provision.ts",
     "db:bootstrap": "node --env-file-if-exists=.local/migration.env --import tsx backend/src/db/bootstrap.ts",
     "storage:check": "node --env-file-if-exists=.env --import tsx backend/src/jobs/storage-cli.ts",
+    "inventory:reconcile": "node --env-file-if-exists=.env --import tsx backend/src/inventory/reconcile-cli.ts",
     "db:seed:demo": "node --env-file-if-exists=.local/demo.env --import tsx backend/src/db/seed-demo.ts",
     "auth:bootstrap": "node --env-file-if-exists=.local/admin.env --import tsx backend/src/auth/bootstrap.ts",
     "build:desktop": "node scripts/deferred.mjs desktop L11",

@@ -40,6 +40,7 @@ import {
   recordChange,
 } from './common.js';
 import { installCatalog } from './catalog.js';
+import { installInventory } from '../inventory/router.js';
 export type Context = {
   tx: Transaction;
   session: AuthSession;
@@ -120,6 +121,14 @@ export function managementRouter(pool: pg.Pool, options: AuthOptions) {
     relaxed = false,
   ) => {
     router[method](path, async (req, res) => {
+      // Commit the attempt counter before acquiring a transaction connection.
+      // Holding a connection while borrowing another can exhaust the pool.
+      if (permission === 'inventory.approve' && method !== 'get') {
+        const session = await readSession(pool, cookieToken(req, options));
+        authorize(session, permission, uuid.parse(req.params['branchId']));
+        checkCsrf(req, session);
+        await consumeAttempt(pool, `inventory-approval:${session.user.id}`, 20);
+      }
       const output = await withTransaction(pool, async (tx) => {
         await authLock(tx);
         const session = await readSession(tx, cookieToken(req, options));
@@ -159,6 +168,7 @@ export function managementRouter(pool: pg.Pool, options: AuthOptions) {
       } else res.json(output ?? { ok: true });
     });
   };
+  installInventory(endpoint);
   endpoint(
     'get',
     '/auth/session',

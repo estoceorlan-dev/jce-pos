@@ -59,6 +59,34 @@ button:disabled {
   border-radius: 8px;
   background: white;
 }
+.inventory-page td {
+  overflow-wrap: normal;
+  font-variant-numeric: tabular-nums;
+}
+.inventory-page .form-grid label,
+.inventory-page form > label {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.inventory-page input {
+  width: 100%;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid #a9b6a7;
+  border-radius: 5px;
+}
+.inventory-page fieldset {
+  min-width: 0;
+  margin: 18px 0;
+  border: 1px solid #dfe5db;
+  border-radius: 6px;
+}
+.inventory-page .history p {
+  font-size: 13px;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

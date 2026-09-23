@@ -113,11 +113,14 @@ describe('database provisioning and upgrade', () => {
       [files[0]!.checksum],
     );
     await migrator.query(
-      "INSERT INTO schema_migrations(version,name,checksum) VALUES (5,'future','future')",
+      "INSERT INTO schema_migrations(version,name,checksum) VALUES ($1,'future','future')",
+      [SCHEMA_VERSION + 1],
     );
     expect(await isReady(runtime)).toBe(false);
     await expect(migrate(migrator)).rejects.toThrow('incompatible');
-    await migrator.query('DELETE FROM schema_migrations WHERE version=5');
+    await migrator.query('DELETE FROM schema_migrations WHERE version=$1', [
+      SCHEMA_VERSION + 1,
+    ]);
     expect(await isReady(runtime)).toBe(true);
   });
   it('initializes one stable installation and scoped branch/terminal identities', async () => {

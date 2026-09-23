@@ -142,7 +142,11 @@ export function createApp({
       return;
     }
     const known = error as { status?: number; code?: string; type?: string };
-    if (['23505', '23503', '23514', '22003'].includes(known.code ?? '')) {
+    if (
+      ['23505', '23503', '23514', '22003', 'IDEMPOTENCY_CONFLICT'].includes(
+        known.code ?? '',
+      )
+    ) {
       res.status(409).json({
         error: {
           code: 'CONFLICT',

@@ -15,6 +15,9 @@ import {
   code,
   version,
   managedPermissions,
+  stockDocumentInput,
+  stockPostInput,
+  reservationInput,
 } from '@jce/shared';
 export const managementPaths: Record<string, Record<string, unknown>> = {};
 function add(
@@ -86,6 +89,71 @@ function add(
   const target = '/api/v1' + path;
   (managementPaths[target] ??= {})[method] = operation;
 }
+const stockBase = '/branches/{branchId}/inventory';
+for (const suffix of [
+  '',
+  '/documents',
+  '/documents/{id}',
+  '/documents/{id}/report',
+  '/movements/{variantId}',
+  '/reservations',
+  '/reconciliation',
+])
+  add(
+    'get',
+    stockBase + suffix,
+    'inventory.read + branch membership. Quantities and valuation use decimal strings in base units. Report returns CSV; reconciliation returns a single consistent snapshot.',
+  );
+add(
+  'post',
+  stockBase + '/documents',
+  'inventory.manage + branch membership. Creates a versioned draft; count drafts freeze the complete variant scope.',
+  z.object({ requestKey: uuid, document: stockDocumentInput }).strict(),
+);
+add(
+  'put',
+  stockBase + '/documents/{id}',
+  'inventory.manage + original author + branch membership. Edits invalidate the reviewed version and refresh balance snapshots.',
+  z.object({ version, document: stockDocumentInput }).strict(),
+);
+add(
+  'post',
+  stockBase + '/documents/{id}/post',
+  'inventory.approve + branch membership + different author. Fresh own-password confirmation; review and posting are atomic. Idempotent request key excludes the password from persistence.',
+  stockPostInput,
+);
+add(
+  'post',
+  stockBase + '/documents/{id}/cancel',
+  'inventory.manage + branch membership. Cancels only the current draft and releases its count freeze.',
+  z.object({ version, requestKey: uuid }).strict(),
+);
+add(
+  'post',
+  stockBase + '/reservations',
+  'inventory.reserve + branch membership. Locks sellable stock and rejects insufficient availability.',
+  reservationInput,
+);
+add(
+  'post',
+  stockBase + '/reservations/{id}/release',
+  'inventory.reserve + branch membership. Releases stock exactly once.',
+  z.object({ requestKey: uuid }).strict(),
+);
+add(
+  'post',
+  stockBase + '/import',
+  'inventory.manage + branch membership. Validates all CSV rows and creates an opening draft with a manifest and reconciliation preview. Header: sku,condition,quantity,unitCost. Maximum 100 rows. No stock effects until reviewed posting.',
+  z
+    .object({
+      requestKey: uuid,
+      csv: z.string().max(50000),
+      sourceReference: z.string().min(1).max(160),
+      openingDate: z.iso.date(),
+      note: z.string().min(1).max(500),
+    })
+    .strict(),
+);
 add(
   'post',
   '/auth/login',

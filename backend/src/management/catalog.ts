@@ -105,6 +105,24 @@ export async function saveVariant(
     );
   const productId = data.productId ?? randomUUID();
   if (existing) {
+    const unitChange = await tx.query(
+      'SELECT 1 FROM product_variants WHERE id=$1 AND (unit_id<>$2 OR conversion<>$3::numeric OR fractional<>$4)',
+      [id, data.unitId, data.conversion, data.fractional],
+    );
+    if (
+      unitChange.rowCount &&
+      (
+        await tx.query(
+          'SELECT 1 FROM stock_adjustment_items WHERE variant_id=$1 UNION ALL SELECT 1 FROM inventory_movements WHERE variant_id=$1 UNION ALL SELECT 1 FROM inventory_reservations WHERE variant_id=$1 LIMIT 1',
+          [id],
+        )
+      ).rowCount
+    )
+      throw new HttpError(
+        409,
+        'STOCK_UNIT_PROTECTED',
+        'Stock history exists. Create a new variant to change its unit, conversion or fractional policy.',
+      );
     const old = requireFound(
       (
         await tx.query<{ product_id: string }>(

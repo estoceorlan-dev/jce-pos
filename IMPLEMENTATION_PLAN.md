@@ -2,7 +2,7 @@
 
 Business-specific answers and confirmations are stored only in `.local/business-intake/`, which Git ignores. This shared document contains generic planning guidance; consult the local records before applying defaults or requesting an already-recorded decision.
 
-Status (2026-09-22): L0 working decisions and synthetic fixtures documented; actual confirmations stay in ignored local records and unresolved evidence/approval remains open. L1-L4 application, database, authentication and master-data implementation is complete with local automated verification. L3/L4 owner, real-data/hardware and packaged-desktop acceptance gates remain open. L5-L13 have not started.
+Status (2026-09-23): L0 working decisions and synthetic fixtures documented; actual confirmations stay in ignored local records and unresolved evidence/approval remains open. L1-L5 application, database, authentication, master-data and inventory implementation is complete with local automated verification. Owner, real opening-stock/value, hardware and packaged-desktop acceptance gates remain open. L6-L13 have not started. See [L5 verification](docs/acceptance/l5-verification.md).
 
 Prepared: 2026-09-20. Source of scope: [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -10,7 +10,7 @@ Prepared: 2026-09-20. Source of scope: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## 1. Current state and delivery boundary
 
-At the start of planning, the project contained the architecture document and an empty README. L1 provides application packages, tests and CI; L2 adds database roles, schema upgrades, installation/branch/terminal identities, transactional helpers, audit/outbox storage and monitoring. L3/L4 add secure accounts, branch administration/settings, catalog/partner records and staged CSV imports; inventory, financial operations and installers remain future work. See the [L0 checklist](docs/acceptance/l0-evidence-register.md), [L1 verification](docs/acceptance/l1-verification.md) and [L2 verification](docs/acceptance/l2-verification.md).
+At the start of planning, the project contained the architecture document and an empty README. L1 provides application packages, tests and CI; L2 adds database roles, schema upgrades, installation/branch/terminal identities, transactional helpers, audit/outbox storage and monitoring. L3/L4 add secure accounts, branch administration/settings, catalog/partner records and staged CSV imports. L5 adds reviewed stock documents, stock/count/reservation screens and reconciled quantity/value ledgers; purchasing, financial operations and installers remain future work. See the [L0 checklist](docs/acceptance/l0-evidence-register.md), [L1 verification](docs/acceptance/l1-verification.md) and [L2 verification](docs/acceptance/l2-verification.md).
 
 Local production includes all store operations: authentication, permissions, branches, catalog, inventory, purchasing, suppliers, customers, checkout, returns, transfers, reports, logs, settings, Windows installation, printing, backup, restore, and maintenance.
 
@@ -244,12 +244,12 @@ Implementation is verified with synthetic CSV, keyboard barcode, pricing and edi
 
 ### L5. Deliver inventory and stock controls
 
-- [ ] Implement per-branch/variant balances, on-hand, reserved, available and quarantined/damaged quantities with a movement ledger.
-- [ ] Deliver stock screens, low/out-of-stock filters, movement history and drill-down to the originating document.
-- [ ] Post opening stock as a dated, valued, approved inventory document with an import manifest and reconciliation report.
-- [ ] Implement reason-coded adjustments and stock counts. Use a scoped count freeze or an explicit movement cutoff so sales during counting cannot corrupt the adjustment.
-- [ ] Implement cost calculations, reservation allocation/release, deterministic inventory lock order, and a read-only ledger-versus-balance reconciliation command.
-- [ ] Require an audited, reviewed correction for a reconciliation failure; never silently overwrite the ledger to match a cached balance.
+- [x] Implement per-branch/variant balances, on-hand, reserved, available and quarantined/damaged quantities with a movement ledger.
+- [x] Deliver stock screens, low/out-of-stock filters, movement history and drill-down to the originating document.
+- [x] Post opening stock as a dated, valued, approved inventory document with an import manifest and reconciliation report. Synthetic workflow verified; actual opening data and business acceptance remain open.
+- [x] Implement reason-coded adjustments and stock counts. Use a scoped count freeze or an explicit movement cutoff so sales during counting cannot corrupt the adjustment. L5 supplies the locked stock boundary for future checkout.
+- [x] Implement cost calculations, reservation allocation/release, deterministic inventory lock order, and a read-only ledger-versus-balance reconciliation command.
+- [x] Require an audited, reviewed correction for a reconciliation failure; never silently overwrite the ledger to match a cached balance.
 
 **Exit:** opening stock plus all movements equals on-hand stock and value; simultaneous deductions cannot oversell; reservations and damaged stock are excluded from saleable availability.
 

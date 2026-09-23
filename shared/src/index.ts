@@ -2,11 +2,11 @@ import { z } from 'zod';
 import { managedPermissions } from './management.js';
 
 export const APP_VERSION = '0.1.0';
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 export * from './management.js';
+export * from './inventory.js';
 export const permissionSchema = z.enum([
   ...managedPermissions,
-  'inventory.read',
   'sales.read',
   'checkout.use',
   'reports.read',

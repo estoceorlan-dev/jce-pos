@@ -1,5 +1,9 @@
 import { z } from 'zod';
 export const managedPermissions = [
+  'inventory.read',
+  'inventory.manage',
+  'inventory.approve',
+  'inventory.reserve',
   'catalog.read',
   'catalog.manage',
   'prices.manage',

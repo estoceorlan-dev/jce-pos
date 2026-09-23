@@ -17,8 +17,16 @@ import {
 } from './catalog-pages';
 import { Users, Branches, Settings, Registers } from './admin-pages';
 import { History } from './forms';
+import { Inventory } from './inventory-pages';
 
 const managementNavigation = [
+  {
+    path: '/inventory',
+    label: 'Inventory',
+    permission: 'inventory.read',
+    branch: true,
+    page: <Inventory />,
+  },
   {
     path: '/catalog',
     label: 'Catalog',
@@ -245,7 +253,7 @@ function Overview() {
           rows={[
             [
               <span key="catalog">Catalog & inventory</span>,
-              'Catalog available after sign-in; inventory follows next',
+              'Catalog and stock controls available after sign-in',
             ],
             ['Checkout & receipts', 'After inventory setup'],
             ['Reports & daily close', 'After checkout setup'],
@@ -475,7 +483,7 @@ function Workspace() {
           )}
           <footer className="page-footer">
             <span>JCE Dry Goods Trading</span>
-            <span>Accounts & catalog · Inventory comes next</span>
+            <span>Accounts, catalog & inventory</span>
           </footer>
         </main>
       </div>

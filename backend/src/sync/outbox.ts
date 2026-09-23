@@ -8,6 +8,25 @@ import { requireTransaction, type Transaction } from '../db/transaction.js';
 const eventSchema = z.discriminatedUnion('eventType', [
   z
     .object({
+      eventType: z.literal('inventory.changed'),
+      aggregateType: z.literal('inventory'),
+      payload: z
+        .object({
+          entityId: z.uuid(),
+          action: z.enum([
+            'drafted',
+            'edited',
+            'cancelled',
+            'posted',
+            'allocated',
+            'released',
+          ]),
+        })
+        .strict(),
+    })
+    .strict(),
+  z
+    .object({
       eventType: z.literal('master.changed'),
       aggregateType: z.literal('master'),
       payload: z
@@ -74,7 +93,8 @@ export async function appendOutbox(
   const scope = contextSchema.parse(context);
   const event = eventSchema.parse(input);
   const entityId =
-    event.eventType === 'master.changed'
+    event.eventType === 'master.changed' ||
+    event.eventType === 'inventory.changed'
       ? event.payload.entityId
       : event.eventType === 'installation.created'
         ? event.payload.installationId

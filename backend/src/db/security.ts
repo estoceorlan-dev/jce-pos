@@ -218,4 +218,21 @@ export async function grantManagementAccess(
       `GRANT INSERT ON tax_code_history,product_price_history TO ${runtime}`,
     );
   }
+  if (version >= 5) {
+    await client.query(
+      `GRANT SELECT ON inventories,stock_adjustments,stock_adjustment_items,stock_counts,stock_count_items,inventory_movements,inventory_reservations,inventory_reservation_events TO ${runtime}`,
+    );
+    await client.query(
+      `GRANT INSERT,UPDATE ON inventories,stock_adjustments,stock_counts TO ${runtime}`,
+    );
+    await client.query(
+      `GRANT INSERT,UPDATE,DELETE ON stock_adjustment_items TO ${runtime}`,
+    );
+    await client.query(
+      `GRANT INSERT ON stock_count_items,inventory_movements,inventory_reservations,inventory_reservation_events TO ${runtime}`,
+    );
+    await client.query(
+      `GRANT UPDATE(status,released_at) ON inventory_reservations TO ${runtime}`,
+    );
+  }
 }

@@ -9,7 +9,7 @@ export const openapi = {
     title: 'JCE POS API',
     version: APP_VERSION,
     description:
-      'L3/L4 identity, branch administration and master data. HTTPS opaque sessions, origin/CSRF checks, live permissions and branch membership. Checkout, stock posting and reports follow in later phases.',
+      'L3-L5 identity, branch administration, master data and inventory. HTTPS opaque sessions, origin/CSRF checks, live permissions, branch membership and reviewed idempotent stock posting. Checkout follows in a later phase.',
   },
   servers: [{ url: '/' }],
   paths: {
