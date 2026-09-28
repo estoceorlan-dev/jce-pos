@@ -8,6 +8,60 @@ import { requireTransaction, type Transaction } from '../db/transaction.js';
 const eventSchema = z.discriminatedUnion('eventType', [
   z
     .object({
+      eventType: z.literal('checkout.changed'),
+      aggregateType: z.literal('checkout'),
+      payload: z
+        .object({
+          entityId: z.uuid(),
+          kind: z.enum([
+            'cart',
+            'sale',
+            'register_session',
+            'approval',
+            'print',
+          ]),
+          action: z.enum([
+            'opened',
+            'created',
+            'edited',
+            'held',
+            'active',
+            'cancelled',
+            'posted',
+            'approved',
+            'requested',
+            'confirmed',
+            'failed',
+          ]),
+        })
+        .strict(),
+    })
+    .strict(),
+  z
+    .object({
+      eventType: z.literal('purchasing.changed'),
+      aggregateType: z.literal('purchasing'),
+      payload: z
+        .object({
+          entityId: z.uuid(),
+          kind: z.enum(['order', 'receipt', 'reversal']),
+          action: z.enum([
+            'drafted',
+            'edited',
+            'submitted',
+            'approved',
+            'rejected',
+            'cancelled',
+            'closed',
+            'posted',
+            'received',
+          ]),
+        })
+        .strict(),
+    })
+    .strict(),
+  z
+    .object({
       eventType: z.literal('inventory.changed'),
       aggregateType: z.literal('inventory'),
       payload: z
@@ -94,7 +148,9 @@ export async function appendOutbox(
   const event = eventSchema.parse(input);
   const entityId =
     event.eventType === 'master.changed' ||
-    event.eventType === 'inventory.changed'
+    event.eventType === 'inventory.changed' ||
+    event.eventType === 'checkout.changed' ||
+    event.eventType === 'purchasing.changed'
       ? event.payload.entityId
       : event.eventType === 'installation.created'
         ? event.payload.installationId

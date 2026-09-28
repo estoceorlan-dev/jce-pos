@@ -1,5 +1,12 @@
 import { z } from 'zod';
 export const managedPermissions = [
+  'checkout.use',
+  'checkout.approve',
+  'sales.read',
+  'purchasing.read',
+  'purchasing.manage',
+  'purchasing.approve',
+  'purchasing.receive',
   'inventory.read',
   'inventory.manage',
   'inventory.approve',

@@ -4,7 +4,7 @@ Business-specific answers and confirmations are stored only in `.local/business-
 
 Point-of-sale and general merchandise management system for JCE Dry Goods Trading.
 
-**L5 inventory and stock control implemented.** The application includes accounts, branch access, catalog/partners and imports, plus stock balances, an immutable movement ledger, reviewed opening stock and adjustments, frozen-scope counts, reservations and reconciliation. See the [inventory runbook](docs/runbooks/inventory.md) and [L5 verification](docs/acceptance/l5-verification.md). Private business confirmations remain local. Real opening quantities/values, owner acceptance, checkout and Windows packaging remain later work.
+**L7 checkout, registers and receipts implemented.** The application includes inventory/purchasing, barcode checkout, saved/held carts, independently reviewed discounts, opening floats, split cash/card/e-wallet recording, atomic sale posting, lost-response recovery and receipt print/reprint history. See the [checkout runbook](docs/runbooks/checkout.md) and [L7 verification](docs/acceptance/l7-verification.md). Private business confirmations remain local. Real opening stock, receipt/tax/payment-policy acceptance, returns/shift close, owner acceptance and Windows packaging remain later work.
 
 ## Start locally
 

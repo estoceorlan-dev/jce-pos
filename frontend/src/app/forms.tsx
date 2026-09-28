@@ -1,6 +1,7 @@
 import { useId, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { DataTable, StatePanel } from '../components/ui';
-import { useData } from './session';
+import { useAllowed, useData } from './session';
 export type Row = Record<string, unknown>;
 export const text = (value: unknown) => (value == null ? '' : String(value));
 export const strings = (value: unknown) =>
@@ -214,6 +215,7 @@ export function History({
   title?: string;
 }) {
   const query = useData<Row[]>(path);
+  const sales = useAllowed('sales.read');
   return (
     <section className="card history">
       <h2>{title}</h2>
@@ -221,6 +223,16 @@ export function History({
       {query.data && (
         <Grid
           title={title}
+          {...(path.includes('/customers/') && sales
+            ? {
+                actions: (row: Row) =>
+                  row['source_type'] === 'sale' ? (
+                    <Link to={`/sales?sale=${text(row['source_id'])}`}>
+                      Open sale receipt
+                    </Link>
+                  ) : null,
+              }
+            : {})}
           rows={query.data.map((row) => ({
             ...row,
             details: row['value']

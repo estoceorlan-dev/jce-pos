@@ -18,8 +18,31 @@ import {
 import { Users, Branches, Settings, Registers } from './admin-pages';
 import { History } from './forms';
 import { Inventory } from './inventory-pages';
+import { Purchasing } from './purchasing-pages';
+import { Checkout, Sales } from './checkout-pages';
 
 const managementNavigation = [
+  {
+    path: '/checkout',
+    label: 'Checkout',
+    permission: 'checkout.use',
+    branch: true,
+    page: <Checkout />,
+  },
+  {
+    path: '/sales',
+    label: 'Transactions & receipts',
+    permission: 'sales.read',
+    branch: true,
+    page: <Sales />,
+  },
+  {
+    path: '/purchasing',
+    label: 'Purchasing',
+    permission: 'purchasing.read',
+    branch: true,
+    page: <Purchasing />,
+  },
   {
     path: '/inventory',
     label: 'Inventory',
@@ -165,7 +188,7 @@ function Overview() {
           <h1>Ready for the next chapter.</h1>
           <p className="lede">Your local store workspace is taking shape.</p>
         </div>
-        <span className="phase-tag">Accounts & catalog · L3–L4</span>
+        <span className="phase-tag">Checkout & receiving · L7</span>
       </div>
       <section className="welcome">
         <div>
@@ -243,8 +266,8 @@ function Overview() {
           <p className="eyebrow">WHAT COMES NEXT</p>
           <h2>Built around your store</h2>
           <p>
-            These areas are planned. Transactions are not available in this
-            foundation release.
+            Catalog, stock, purchasing and checkout are available after setup.
+            Reports and daily close follow in later milestones.
           </p>
         </div>
         <DataTable
@@ -255,7 +278,7 @@ function Overview() {
               <span key="catalog">Catalog & inventory</span>,
               'Catalog and stock controls available after sign-in',
             ],
-            ['Checkout & receipts', 'After inventory setup'],
+            ['Checkout & receipts', 'Available after register and tax setup'],
             ['Reports & daily close', 'After checkout setup'],
           ]}
         />
@@ -483,7 +506,7 @@ function Workspace() {
           )}
           <footer className="page-footer">
             <span>JCE Dry Goods Trading</span>
-            <span>Accounts, catalog & inventory</span>
+            <span>Checkout, purchasing & inventory</span>
           </footer>
         </main>
       </div>

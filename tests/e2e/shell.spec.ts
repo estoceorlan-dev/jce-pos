@@ -71,7 +71,7 @@ test('deep links remain guarded and unknown pages are clear', async ({
 }) => {
   await page.goto('/checkout');
   await expect(
-    page.getByRole('heading', { name: 'Access unavailable' }),
+    page.getByRole('heading', { name: 'Sign in', exact: true }),
   ).toBeVisible();
   await page.goto('/missing');
   await expect(

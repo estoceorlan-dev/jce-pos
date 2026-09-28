@@ -144,6 +144,7 @@ export async function applyMovement(
     sourceLineId: string;
     actorId: string;
     countId?: string;
+    valueChange?: string;
   },
 ) {
   requireTransaction(tx);
@@ -169,9 +170,25 @@ export async function applyMovement(
     input.condition,
   );
   const next = movementValue(current, input.quantity, input.unitCost);
+  if (input.valueChange !== undefined) {
+    const change = decimal(input.valueChange);
+    const value = decimal(current.value).plus(change);
+    if (
+      change.decimalPlaces() > 6 ||
+      value.isNegative() ||
+      (decimal(input.quantity).isPositive() && change.isNegative()) ||
+      (decimal(input.quantity).isNegative() && change.isPositive()) ||
+      (decimal(next.quantity).isZero() && !value.isZero())
+    )
+      throw conflict(
+        'The exact document value cannot be applied to this stock balance.',
+      );
+    next.change = change.toFixed(6);
+    next.value = value.toFixed(6);
+  }
   if (decimal(input.quantity).isZero()) return;
   await tx.query(
-    'INSERT INTO inventory_movements(id,installation_id,branch_id,variant_id,condition,quantity,value,source_type,source_id,source_line_id,actor_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',
+    'INSERT INTO inventory_movements(id,installation_id,branch_id,variant_id,condition,quantity,value,source_type,source_id,source_line_id,actor_id,balance_version) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',
     [
       randomUUID(),
       input.installationId,
@@ -184,6 +201,7 @@ export async function applyMovement(
       input.sourceId,
       input.sourceLineId,
       input.actorId,
+      current.version + 1,
     ],
   );
   await tx.query(

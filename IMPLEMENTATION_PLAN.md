@@ -2,7 +2,7 @@
 
 Business-specific answers and confirmations are stored only in `.local/business-intake/`, which Git ignores. This shared document contains generic planning guidance; consult the local records before applying defaults or requesting an already-recorded decision.
 
-Status (2026-09-23): L0 working decisions and synthetic fixtures documented; actual confirmations stay in ignored local records and unresolved evidence/approval remains open. L1-L5 application, database, authentication, master-data and inventory implementation is complete with local automated verification. Owner, real opening-stock/value, hardware and packaged-desktop acceptance gates remain open. L6-L13 have not started. See [L5 verification](docs/acceptance/l5-verification.md).
+Status (2026-09-28): L0 working decisions and synthetic fixtures documented; actual confirmations stay in ignored local records and unresolved evidence/approval remains open. L1-L7 application, database, authentication, master-data, inventory, purchasing and checkout implementation is complete with local automated verification. Owner, real opening-stock/value, invoice/tax/payment-policy, hardware and packaged-desktop acceptance gates remain open. L8-L13 have not started. See [L7 verification](docs/acceptance/l7-verification.md).
 
 Prepared: 2026-09-20. Source of scope: [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -10,7 +10,7 @@ Prepared: 2026-09-20. Source of scope: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## 1. Current state and delivery boundary
 
-At the start of planning, the project contained the architecture document and an empty README. L1 provides application packages, tests and CI; L2 adds database roles, schema upgrades, installation/branch/terminal identities, transactional helpers, audit/outbox storage and monitoring. L3/L4 add secure accounts, branch administration/settings, catalog/partner records and staged CSV imports. L5 adds reviewed stock documents, stock/count/reservation screens and reconciled quantity/value ledgers; purchasing, financial operations and installers remain future work. See the [L0 checklist](docs/acceptance/l0-evidence-register.md), [L1 verification](docs/acceptance/l1-verification.md) and [L2 verification](docs/acceptance/l2-verification.md).
+At the start of planning, the project contained the architecture document and an empty README. L1 provides application packages, tests and CI; L2 adds database roles, schema upgrades, installation/branch/terminal identities, transactional helpers, audit/outbox storage and monitoring. L3/L4 add secure accounts, branch administration/settings, catalog/partner records and staged CSV imports. L5 adds reviewed stock documents, stock/count/reservation screens and reconciled quantity/value ledgers. L6 adds approved purchase orders, partial receiving, linked reversals and supplier history. L7 adds register opening, checkout, discounts/payments, recoverable atomic sales and receipt printing. Returns, cash close, reports and installers remain future work. See the [L0 checklist](docs/acceptance/l0-evidence-register.md), [L1 verification](docs/acceptance/l1-verification.md) and [L2 verification](docs/acceptance/l2-verification.md).
 
 Local production includes all store operations: authentication, permissions, branches, catalog, inventory, purchasing, suppliers, customers, checkout, returns, transfers, reports, logs, settings, Windows installation, printing, backup, restore, and maintenance.
 
@@ -255,25 +255,29 @@ Implementation is verified with synthetic CSV, keyboard barcode, pricing and edi
 
 ### L6. Deliver purchasing and goods receiving
 
-- [ ] Implement purchase orders with `DRAFT -> SUBMITTED -> APPROVED -> PARTIALLY_RECEIVED -> RECEIVED`, with reject/cancel paths and controlled closure of unreceived quantities.
-- [ ] Create supplier-linked goods receipts from approved orders, with quantities, unit conversions, cost, tax/discount data, supplier reference and receiving user.
-- [ ] Validate partial and excess receipts using the approved policy; prevent duplicate posting. A purchase order alone never changes inventory.
-- [ ] Posting a receipt updates quantity, stock value, weighted average cost, purchase history, audit and outbox atomically.
-- [ ] Support correction/reversal of a posted receipt through a linked document, with a controlled rule if its stock has already been sold; do not edit the original receipt in place.
-- [ ] Show outstanding orders, purchase/receiving history, supplier history and printable receiving documents.
+- [x] Implement purchase orders with `DRAFT -> SUBMITTED -> APPROVED -> PARTIALLY_RECEIVED -> RECEIVED`, with reject/cancel paths and controlled closure of unreceived quantities.
+- [x] Create supplier-linked goods receipts from approved orders, with quantities, unit conversions, cost, tax/discount data, supplier reference and receiving user.
+- [x] Validate partial and excess receipts; prevent duplicate posting. A purchase order alone never changes inventory. Excess is rejected pending explicit business policy and requires another approved order.
+- [x] Posting a receipt updates quantity, stock value, weighted average cost, purchase history, audit and outbox atomically.
+- [x] Support correction/reversal of a posted receipt through a linked document; do not edit the original receipt in place. Full reversal requires independent review, available stock and no later movement for the affected stock condition, including sold-then-replenished stock.
+- [x] Show outstanding orders, purchase/receiving history, supplier history and printable receiving documents.
+
+Synthetic implementation verification is recorded in [L6 verification](docs/acceptance/l6-verification.md). Real supplier invoice calculations, tax/discount rounding, landed costs, excess-delivery and supplier-return policies still require business acceptance; see [purchasing decisions](docs/decisions/0007-purchasing-and-receiving.md).
 
 **Exit:** repeated delivery requests cannot add stock twice; partial deliveries reconcile to order quantities and supplier totals; posted corrections preserve history.
 
 ### L7. Deliver POS, registers and payments
 
-- [ ] Build a keyboard-first checkout screen with barcode input, search, quantities, customer selection, discount request/approval, tax display, hold/resume cart, cancel cart and clear totals.
-- [ ] Add opening float and register sessions. A terminal has at most one open session; finalization requires a permitted cashier and an open session.
-- [ ] Support cash, approved manually recorded noncash methods and split tender. Validate tender references, tender total, cash change and overpayment rules server-side.
-- [ ] Revalidate prices, discounts, permission, product status and available stock at posting. Return a clear conflict when a cart requires cashier review.
-- [ ] Persist a checkout request UUID before sending. If the response is lost, look up or retry that same request; never turn a timeout into a new sale automatically.
-- [ ] Commit sale, line snapshots, payments, cash effect, stock/cost movements, customer history, audit and outbox together.
-- [ ] Render receipts from committed snapshots. Add print/reprint history and a browser print layout; receipt printer support is qualified in L11. Printer failure must leave the sale committed and recoverable.
-- [ ] Add transaction search, sale details, receipt lookup and a visible state for committed-but-not-printed sales.
+- [x] Build a keyboard-first checkout screen with barcode input, search, quantities, customer selection, discount request/approval, tax display, hold/resume cart, cancel cart and clear totals.
+- [x] Add opening float and register sessions. A terminal has at most one open session; finalization requires a permitted cashier and an open session.
+- [x] Support cash, approved manually recorded noncash methods and split tender. Validate tender references, tender total, cash change and overpayment rules server-side. Specific provider/change-policy acceptance remains open; no payment gateway or credit sale is enabled.
+- [x] Revalidate prices, discounts, permission, product status and available stock at posting. Return a clear conflict when a cart requires cashier review.
+- [x] Persist a checkout request UUID before sending. If the response is lost, look up or retry that same request; never turn a timeout into a new sale automatically.
+- [x] Commit sale, line snapshots, payments, cash effect, stock/cost movements, customer history, audit and outbox together.
+- [x] Render receipts from committed snapshots. Add print/reprint history and a browser print layout; receipt printer support is qualified in L11. Printer failure leaves the sale committed and recoverable. Operator confirmation distinguishes paper printing from merely opening a dialog.
+- [x] Add transaction search, sale details, receipt lookup and a visible state for committed-but-not-printed sales.
+
+Synthetic implementation evidence is recorded in [L7 verification](docs/acceptance/l7-verification.md). Actual receipt/tax/discount/tender acceptance and physical outage/printer qualification remain open. Register closing and posted corrections are L8; see [checkout decisions](docs/decisions/0008-checkout-and-receipts.md).
 
 **Exit:** two-till last-unit and double-submit tests pass; a timed-out successful checkout is recovered as the same sale; internet disconnection has no effect on local checkout.
 

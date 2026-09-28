@@ -24,8 +24,12 @@ export const verifyPassword = (hash: string, value: string) =>
   argon2.verify(hash, value);
 export type AuthOptions = { origin: string; insecureLoopback: boolean };
 export type AuthSession = SessionView & { hash: string };
-export const authLock = (tx: Transaction) =>
-  tx.query('SELECT pg_advisory_xact_lock(74012003)');
+export const authLock = (tx: Transaction, shared = false) =>
+  tx.query(
+    shared
+      ? 'SELECT pg_advisory_xact_lock_shared(74012003)'
+      : 'SELECT pg_advisory_xact_lock(74012003)',
+  );
 const unauth = () =>
   new HttpError(401, 'UNAUTHENTICATED', 'Sign in to continue.');
 const cookieName = (options: AuthOptions) =>

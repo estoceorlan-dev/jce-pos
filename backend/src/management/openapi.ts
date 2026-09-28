@@ -18,6 +18,18 @@ import {
   stockDocumentInput,
   stockPostInput,
   reservationInput,
+  purchaseOrderInput,
+  purchaseReceiptInput,
+  purchaseReversalInput,
+  purchasingApproval,
+  purchasingTransition,
+  purchasePost,
+  cartInput,
+  cartAction,
+  discountApproval,
+  checkoutInput,
+  registerOpenInput,
+  printInput,
 } from '@jce/shared';
 export const managementPaths: Record<string, Record<string, unknown>> = {};
 function add(
@@ -90,6 +102,142 @@ function add(
   (managementPaths[target] ??= {})[method] = operation;
 }
 const stockBase = '/branches/{branchId}/inventory';
+const checkoutBase = '/branches/{branchId}/checkout';
+add(
+  'get',
+  checkoutBase + '/options',
+  'checkout.use + branch membership. Bounded q/customerQ search, register sessions and setup status.',
+);
+add(
+  'post',
+  checkoutBase + '/sessions',
+  'checkout.use + branch membership. Unique open terminal session; idempotent opening float.',
+  registerOpenInput,
+);
+add(
+  'get',
+  checkoutBase + '/carts',
+  'checkout.use + branch membership. Own active/held carts; reviewers can see branch carts. Bounded page/limit.',
+);
+add(
+  'get',
+  checkoutBase + '/carts/{id}',
+  'checkout.use + branch membership + author or checkout.approve.',
+);
+add(
+  'post',
+  checkoutBase + '/carts',
+  'checkout.use + branch membership.',
+  z.object({ requestKey: uuid, cart: cartInput }).strict(),
+);
+add(
+  'put',
+  checkoutBase + '/carts/{id}',
+  'checkout.use + branch membership + author. Reprices and invalidates approval.',
+  z.object({ version, cart: cartInput }).strict(),
+);
+for (const action of ['hold', 'resume', 'cancel'])
+  add(
+    'post',
+    checkoutBase + '/carts/{id}/' + action,
+    'checkout.use + branch membership + author.',
+    cartAction,
+  );
+add(
+  'post',
+  checkoutBase + '/carts/{id}/approve-discount',
+  'checkout.approve + branch membership. Different password-confirmed reviewer, exact cart version and quote, five-minute expiry.',
+  discountApproval,
+);
+add(
+  'post',
+  checkoutBase + '/carts/{id}/post',
+  'checkout.use + branch membership + author/open session. Atomic sale and stock; retain exact request key and payments on transport failure.',
+  checkoutInput,
+);
+add(
+  'get',
+  checkoutBase + '/requests/{key}',
+  'checkout.use + branch membership + original cashier. Returns sale or null; null does not authorize replacing an in-flight request key.',
+);
+add(
+  'get',
+  '/branches/{branchId}/sales',
+  'sales.read + branch membership. Bounded page/limit/q and unprinted=true filter.',
+);
+add(
+  'get',
+  '/branches/{branchId}/sales/{id}',
+  'sales.read + branch membership. Committed receipt snapshots and print history.',
+);
+add(
+  'post',
+  '/branches/{branchId}/sales/{id}/print',
+  'sales.read + branch membership. Requested print or same-operator confirmation/failure of a prior attempt; append-only and idempotent.',
+  printInput,
+);
+const purchasingBase = '/branches/{branchId}/purchasing';
+for (const suffix of [
+  '/options',
+  '/orders',
+  '/orders/{id}',
+  '/receipts',
+  '/receipts/{id}',
+])
+  add(
+    'get',
+    purchasingBase + suffix,
+    'purchasing.read + branch membership. Decimal strings, bounded lists; receipt history supports supplierId/orderId and includes posted signed totals.',
+  );
+for (const [kind, input, permission] of [
+  ['orders', purchaseOrderInput, 'purchasing.manage'],
+  ['receipts', purchaseReceiptInput, 'purchasing.receive'],
+] as const) {
+  const key = kind === 'orders' ? 'order' : 'receipt';
+  add(
+    'post',
+    `${purchasingBase}/${kind}`,
+    permission + ' + branch membership. Creates a draft only.',
+    z.object({ requestKey: uuid, [key]: input }).strict(),
+  );
+  add(
+    'put',
+    `${purchasingBase}/${kind}/{id}`,
+    permission +
+      ' + branch membership + draft author. Requires current version.',
+    z.object({ version, [key]: input }).strict(),
+  );
+}
+for (const action of ['submit', 'cancel', 'approve', 'reject', 'close'])
+  add(
+    'post',
+    `${purchasingBase}/orders/{id}/${action}`,
+    ['submit', 'cancel'].includes(action)
+      ? 'purchasing.manage + original author. Versioned state transition.'
+      : 'purchasing.approve + different author + fresh password. Exact version and reason.',
+    ['submit', 'cancel'].includes(action)
+      ? purchasingTransition
+      : purchasingApproval,
+  );
+for (const action of ['post', 'cancel'])
+  add(
+    'post',
+    `${purchasingBase}/receipts/{id}/${action}`,
+    'purchasing.receive + original author + branch membership. Idempotent; rejects excess receiving and duplicate delivery references.',
+    purchasePost,
+  );
+add(
+  'post',
+  purchasingBase + '/reversals',
+  'purchasing.receive + branch membership. Creates a full reversal draft linked to an immutable posted receipt.',
+  purchaseReversalInput,
+);
+add(
+  'post',
+  purchasingBase + '/receipts/{id}/approve-reversal',
+  'purchasing.approve + different author + fresh password. Rejects subsequent stock movements or insufficient available quantity/value. Exact original quantity/value reversal.',
+  purchasePost.extend({ password: z.string().min(1).max(128) }),
+);
 for (const suffix of [
   '',
   '/documents',

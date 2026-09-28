@@ -5,6 +5,7 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public code = 'REQUEST_FAILED',
   ) {
     super(message);
   }
@@ -25,12 +26,13 @@ export async function api<T>(
     ...(data !== undefined ? { body: JSON.stringify(data) } : {}),
   });
   const body = (await response.json()) as T & {
-    error?: { message: string; fields?: string[] };
+    error?: { code?: string; message: string; fields?: string[] };
   };
   if (!response.ok)
     throw new ApiError(
       response.status,
       `${body.error?.message ?? 'Request failed.'}${body.error?.fields?.length ? ' Fields: ' + body.error.fields.join(', ') : ''}`,
+      body.error?.code,
     );
   return body;
 }

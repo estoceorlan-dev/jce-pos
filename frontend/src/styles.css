@@ -6,6 +6,36 @@
   font-weight: 400;
   line-height: 1.55;
 }
+.scan-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.checkout-total {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.sale-receipt {
+  background: white;
+  border: 1px solid #dbe3d5;
+  padding: 18px;
+  width: 420px;
+  max-width: 100%;
+  margin-top: 24px;
+  overflow-wrap: anywhere;
+}
+.receipt-line {
+  border-bottom: 1px dashed #84958d;
+  padding: 10px 0;
+  break-inside: avoid;
+}
+.receipt-line p {
+  margin: 4px 0;
+}
+.receipt-total {
+  font-size: 1.2rem;
+}
 * {
   box-sizing: border-box;
 }
@@ -86,6 +116,54 @@ button:disabled {
   font-size: 13px;
   margin: 8px 0;
   overflow-wrap: anywhere;
+}
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 12mm;
+  }
+  body,
+  .workspace,
+  main {
+    background: white;
+    padding: 0;
+    margin: 0;
+  }
+  .app-shell,
+  .workspace {
+    display: block;
+  }
+  .sidebar,
+  .topbar,
+  .page-footer,
+  .skip-link,
+  .no-print,
+  .purchase-page > :not(.purchase-print) {
+    display: none !important;
+  }
+  .purchase-print {
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+  .purchase-print .table-scroll {
+    overflow: visible;
+  }
+  .purchase-print table {
+    min-width: 0 !important;
+    font-size: 9px;
+  }
+  .purchase-print th,
+  .purchase-print td {
+    padding: 5px;
+    max-width: none;
+  }
+  .purchase-print tr {
+    break-inside: avoid;
+  }
+  .purchase-print thead {
+    display: table-header-group;
+  }
 }
 .form-grid {
   display: grid;
@@ -696,5 +774,32 @@ td:last-child {
   }
   .section-heading span {
     display: none;
+  }
+}
+@media print {
+  @page sale {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+  .sales-page {
+    page: sale;
+  }
+  .sales-page .sale-receipt {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    width: 76mm;
+    max-width: 100%;
+    font-size: 11px;
+    color: black;
+  }
+  .sales-page .paper-58 {
+    width: 54mm;
+  }
+  .sales-page .sale-receipt h2 {
+    font-size: 16px;
+  }
+  .app-shell .workspace main {
+    padding: 0;
   }
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Editor,
   Grid,
@@ -355,6 +356,7 @@ export function Partners({ kind }: { kind: 'customers' | 'suppliers' }) {
   const { session, write } = useSession();
   const canManage = useAllowed('partners.manage');
   const contacts = useAllowed('contacts.read');
+  const purchasing = useAllowed('purchasing.read');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
   const [archived, setArchived] = useState('false');
@@ -434,6 +436,11 @@ export function Partners({ kind }: { kind: 'customers' | 'suppliers' }) {
                   </button>
                 </>
               )}
+              {kind === 'suppliers' && purchasing && (
+                <Link to={`/purchasing?supplier=${text(row['id'])}`}>
+                  Purchase history
+                </Link>
+              )}
             </div>
           )}
         />
@@ -471,8 +478,8 @@ export function Partners({ kind }: { kind: 'customers' | 'suppliers' }) {
       {history && (
         <>
           <p>
-            Posted sales and refunds will appear here when checkout and returns
-            are available.
+            Posted customer sales appear here. Refunds are added in the returns
+            milestone.
           </p>
           <History
             path={`${base}/${history}/history`}

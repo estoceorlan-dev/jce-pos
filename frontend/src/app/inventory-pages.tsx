@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { StockDocumentInput } from '@jce/shared';
 import { useAllowed, useData, useSession } from './session';
 import { Grid, LoadState, text, type Row } from './forms';
@@ -766,11 +767,21 @@ function Movements({
               ['value', 'Value change'],
               ['number', 'Document'],
             ]}
-            actions={(r) => (
-              <button onClick={() => open(text(r['source_id']))}>
-                Open source document
-              </button>
-            )}
+            actions={(r) =>
+              r['source_type'] === 'sale' ? (
+                <Link to={`/sales?sale=${text(r['source_id'])}`}>
+                  Open sale receipt
+                </Link>
+              ) : r['source_type'] === 'purchase' ? (
+                <Link to={`/purchasing?receipt=${text(r['source_id'])}`}>
+                  Open receiving document
+                </Link>
+              ) : (
+                <button onClick={() => open(text(r['source_id']))}>
+                  Open source document
+                </button>
+              )
+            }
           />
           <Pager page={page} setPage={setPage} hasMore={query.data.hasMore} />
         </>

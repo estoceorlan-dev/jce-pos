@@ -113,7 +113,7 @@ export async function saveVariant(
       unitChange.rowCount &&
       (
         await tx.query(
-          'SELECT 1 FROM stock_adjustment_items WHERE variant_id=$1 UNION ALL SELECT 1 FROM inventory_movements WHERE variant_id=$1 UNION ALL SELECT 1 FROM inventory_reservations WHERE variant_id=$1 LIMIT 1',
+          'SELECT 1 FROM stock_adjustment_items WHERE variant_id=$1 UNION ALL SELECT 1 FROM inventory_movements WHERE variant_id=$1 UNION ALL SELECT 1 FROM inventory_reservations WHERE variant_id=$1 UNION ALL SELECT 1 FROM purchase_order_items WHERE variant_id=$1 LIMIT 1',
           [id],
         )
       ).rowCount

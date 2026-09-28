@@ -105,7 +105,7 @@ export function installInventory(endpoint: Endpoint) {
       const page = paginationSchema.parse(req.query);
       const rows = (
         await tx.query(
-          `SELECT m.*,d.number,d.kind FROM inventory_movements m LEFT JOIN stock_adjustments d ON d.id=m.source_id AND d.branch_id=m.branch_id AND m.source_type='stock_adjustment' WHERE m.branch_id=$1 AND m.variant_id=$2 ORDER BY m.occurred_at DESC,m.id DESC LIMIT $3 OFFSET $4`,
+          `SELECT m.*,COALESCE(d.number,p.number,s.number) number,COALESCE(d.kind,p.kind,CASE WHEN s.id IS NOT NULL THEN 'sale' END) kind FROM inventory_movements m LEFT JOIN stock_adjustments d ON d.id=m.source_id AND d.branch_id=m.branch_id AND m.source_type='stock_adjustment' LEFT JOIN purchases p ON p.id=m.source_id AND p.branch_id=m.branch_id AND m.source_type='purchase' LEFT JOIN sales s ON s.id=m.source_id AND s.branch_id=m.branch_id AND m.source_type='sale' WHERE m.branch_id=$1 AND m.variant_id=$2 ORDER BY m.occurred_at DESC,m.id DESC LIMIT $3 OFFSET $4`,
           [
             branchId,
             uuid.parse(req.params['variantId']),

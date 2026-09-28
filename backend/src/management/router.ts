@@ -41,6 +41,8 @@ import {
 } from './common.js';
 import { installCatalog } from './catalog.js';
 import { installInventory } from '../inventory/router.js';
+import { installPurchasing } from '../purchasing/router.js';
+import { installCheckout } from '../checkout/router.js';
 export type Context = {
   tx: Transaction;
   session: AuthSession;
@@ -123,14 +125,29 @@ export function managementRouter(pool: pg.Pool, options: AuthOptions) {
     router[method](path, async (req, res) => {
       // Commit the attempt counter before acquiring a transaction connection.
       // Holding a connection while borrowing another can exhaust the pool.
-      if (permission === 'inventory.approve' && method !== 'get') {
+      if (
+        [
+          'inventory.approve',
+          'purchasing.approve',
+          'checkout.approve',
+        ].includes(permission ?? '') &&
+        method !== 'get'
+      ) {
         const session = await readSession(pool, cookieToken(req, options));
         authorize(session, permission, uuid.parse(req.params['branchId']));
         checkCsrf(req, session);
-        await consumeAttempt(pool, `inventory-approval:${session.user.id}`, 20);
+        await consumeAttempt(pool, `${permission}:${session.user.id}`, 20);
       }
       const output = await withTransaction(pool, async (tx) => {
-        await authLock(tx);
+        // Stable authority/configuration can be shared by independent tills.
+        // Master-data, configuration and identity writes keep the exclusive lock;
+        // authorization table triggers also acquire it for direct SQL changes.
+        const sharedAuthority =
+          method === 'get' ||
+          /^\/branches\/:branchId\/(checkout|sales|inventory|purchasing)(\/|$)/.test(
+            path,
+          );
+        await authLock(tx, sharedAuthority);
         const session = await readSession(tx, cookieToken(req, options));
         if (method !== 'get') checkCsrf(req, session);
         const rawBranch = req.params['branchId'];
@@ -169,6 +186,8 @@ export function managementRouter(pool: pg.Pool, options: AuthOptions) {
     });
   };
   installInventory(endpoint);
+  installPurchasing(endpoint);
+  installCheckout(endpoint);
   endpoint(
     'get',
     '/auth/session',

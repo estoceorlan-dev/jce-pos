@@ -59,7 +59,7 @@ Browser tests run the built API on port 3100 and refuse to reuse an existing ser
 
 ## API and operational behavior
 
-`GET /health/live` checks process liveness; `/health/ready` checks runtime credential privileges, connectivity and exact migration history/checksums. `/api/v1/version` returns app/API/schema versions (schema 5). `/api/v1/openapi.json` serves the OpenAPI 3.1 contract. Storage metrics are operator logs/CLI only; see [retention and monitoring](storage-retention.md). Inventory workflows and the reconciliation command are described in the [inventory runbook](inventory.md).
+`GET /health/live` checks process liveness; `/health/ready` checks runtime credential privileges, connectivity and exact migration history/checksums. `/api/v1/version` returns app/API/schema versions (schema 7). `/api/v1/openapi.json` serves the OpenAPI 3.1 contract. Storage metrics are operator logs/CLI only; see [retention and monitoring](storage-retention.md). Inventory workflows and the reconciliation command are described in the [inventory runbook](inventory.md); order approval and receiving are in the [purchasing runbook](purchasing.md). Register opening, checkout recovery and receipt printing are in the [checkout runbook](checkout.md).
 
 Responses include generated `X-Request-ID`. Errors follow `{ "error": { "code", "message", "requestId" } }`. API/health 404s stay JSON even when HTML is requested. SPA navigation serves the built app; missing file assets remain 404. JSON bodies are limited to 64 KiB. Shared pagination validates page 1–10,000 and limit 1–100; management search endpoints enforce these limits.
 

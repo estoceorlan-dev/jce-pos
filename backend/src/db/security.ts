@@ -235,4 +235,28 @@ export async function grantManagementAccess(
       `GRANT UPDATE(status,released_at) ON inventory_reservations TO ${runtime}`,
     );
   }
+  if (version >= 6) {
+    await client.query(
+      `GRANT SELECT ON purchase_orders,purchase_order_items,purchases,purchase_items,purchase_order_events TO ${runtime}`,
+    );
+    await client.query(
+      `GRANT INSERT,UPDATE ON purchase_orders,purchases TO ${runtime}`,
+    );
+    await client.query(
+      `GRANT INSERT,UPDATE,DELETE ON purchase_order_items,purchase_items TO ${runtime}`,
+    );
+    await client.query(`GRANT INSERT ON purchase_order_events TO ${runtime}`);
+  }
+  if (version >= 7) {
+    await client.query(
+      `GRANT SELECT,INSERT ON register_sessions,checkout_carts,checkout_approvals,sales,sale_items,sale_payments,register_cash_entries,receipt_print_events TO ${runtime}`,
+    );
+    await client.query(`GRANT UPDATE ON checkout_carts TO ${runtime}`);
+    await client.query(`GRANT UPDATE(status) ON sales TO ${runtime}`);
+    // Row locking at checkout requires UPDATE privilege; opening identity/float stay immutable.
+    await client.query(
+      `GRANT UPDATE(status,closed_at) ON register_sessions TO ${runtime}`,
+    );
+    await client.query(`GRANT INSERT ON customer_transactions TO ${runtime}`);
+  }
 }
