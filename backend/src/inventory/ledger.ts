@@ -145,6 +145,10 @@ export async function applyMovement(
     actorId: string;
     countId?: string;
     valueChange?: string;
+    /** Return quantities were validated against the immutable sale snapshot. */
+    originalSaleReturn?: boolean;
+    /** Receipt/resolution quantities were validated against the shipment snapshot. */
+    dispatchedTransfer?: boolean;
   },
 ) {
   requireTransaction(tx);
@@ -159,8 +163,10 @@ export async function applyMovement(
   ).rows[0];
   if (
     !variant ||
-    variant.archived ||
-    (!variant.fractional && !decimal(input.quantity).isInteger())
+    (!input.originalSaleReturn &&
+      !input.dispatchedTransfer &&
+      (variant.archived ||
+        (!variant.fractional && !decimal(input.quantity).isInteger())))
   )
     throw conflict('Check product status and base-unit quantity.');
   const current = await assertReconciled(

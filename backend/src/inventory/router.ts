@@ -376,12 +376,17 @@ export function installInventory(endpoint: Endpoint) {
               variant_id: string;
               quantity: string;
               status: string;
+              transfer_item_id?: string | null;
             }>(
               'SELECT * FROM inventory_reservations WHERE id=$1 AND branch_id=$2',
               [id, branchId],
             )
           ).rows[0],
         );
+        if (reservation.transfer_item_id)
+          throw conflict(
+            'This reservation belongs to a transfer. Cancel or dispatch that transfer instead.',
+          );
         await lockInventory(tx, branchId, [reservation.variant_id]);
         const current = requireFound(
           (

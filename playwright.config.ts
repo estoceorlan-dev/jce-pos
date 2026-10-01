@@ -9,6 +9,9 @@ if (!databaseUrl || !new URL(databaseUrl).pathname.endsWith('_test'))
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
+  // Bound full-browser/password-hashing load on the shared local test host.
+  // These are functional journeys; L12 owns production capacity qualification.
+  workers: 2,
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],

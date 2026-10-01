@@ -916,6 +916,7 @@ function SaleReceipt({ base, id }: { base: string; id: string }) {
     lines: Row[];
     payments: Row[];
     prints: Row[];
+    returns: Row[];
   }>(`${base}/${id}`);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState('');
@@ -1060,6 +1061,20 @@ function SaleReceipt({ base, id }: { base: string; id: string }) {
             ['actor', 'Operator'],
             ['occurred_at', 'Time'],
           ]}
+        />
+        <Grid
+          title="Linked returns and reversals"
+          rows={query.data.returns}
+          columns={[
+            ['number', 'Return receipt'],
+            ['total', 'Refund'],
+            ['reversal', 'Full reversal'],
+          ]}
+          actions={(r) => (
+            <Link to={`/reconciliation?request=${text(r['id'])}`}>
+              Open correction
+            </Link>
+          )}
         />
       </div>
     </section>

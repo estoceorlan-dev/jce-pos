@@ -78,7 +78,8 @@ export async function checkoutEvent(
   actorId: string,
   id: string,
   version: number,
-  kind: 'cart' | 'sale' | 'register_session' | 'approval' | 'print',
+  kind:
+    'cart' | 'sale' | 'register_session' | 'approval' | 'print' | 'correction',
   action:
     | 'opened'
     | 'created'
@@ -387,7 +388,7 @@ export async function cartTransition(
   await checkoutEvent(tx, branchId, actorId, id, version + 1, 'cart', status);
   return { id, version: version + 1 };
 }
-async function eligible(
+export async function eligible(
   tx: Transaction,
   branchId: string,
   actorId: string,
@@ -644,5 +645,11 @@ export async function saleDetail(
       [id],
     )
   ).rows;
-  return { sale, lines, payments, prints };
+  const returns = (
+    await tx.query(
+      'SELECT id,number,total,reversal,reason_code,posted_at FROM sales_returns WHERE sale_id=$1 ORDER BY posted_at,id',
+      [id],
+    )
+  ).rows;
+  return { sale, lines, payments, prints, returns };
 }

@@ -15,6 +15,7 @@ import {
 } from '../../backend/src/inventory/ledger.js';
 import { testDatabase, resetTestDatabase } from '../support/database.js';
 import { testPassword } from '../support/management.js';
+import type { CorrectionInput } from '@jce/shared';
 const cfg = testDatabase(),
   pool = createPool(cfg.connection('runtime')),
   migration = createPool(cfg.connection('migrator'));
@@ -204,7 +205,7 @@ beforeAll(async () => {
     password: testPassword,
   });
   [branch, otherBranch] = seeded.branches as [string, string];
-  await migrate(migration);
+  await migrate(migration, { targetVersion: 7 });
   expect(
     (await migration.query('SELECT count(*)::int count FROM sales')).rows[0]
       .count,
@@ -263,6 +264,35 @@ beforeAll(async () => {
   ).toBe(200);
   session1 = await open(cashier);
   session2 = await open(cashier2);
+  // Upgrade populated L7 data, preserving the committed receipt and stock.
+  const oldSession = await open(admin),
+    oldVariant = await product('5'),
+    oldCart = await cart(oldVariant, '1', '0', admin, oldSession);
+  const oldSale = await post(oldCart.id, admin);
+  expect(oldSale.status, oldSale.text).toBe(200);
+  const before = (
+    await migration.query('SELECT * FROM sales WHERE id=$1', [oldSale.body.id])
+  ).rows[0];
+  await migrate(migration);
+  expect(
+    (
+      await migration.query('SELECT * FROM sales WHERE id=$1', [
+        oldSale.body.id,
+      ])
+    ).rows[0],
+  ).toEqual(before);
+  expect(
+    (
+      await migration.query(
+        "SELECT business_date=(opened_at AT TIME ZONE 'Asia/Manila')::date matched FROM register_sessions WHERE id=$1",
+        [oldSession],
+      )
+    ).rows[0].matched,
+  ).toBe(true);
+  expect(
+    (await migration.query('SELECT count(*)::int n FROM sales_returns')).rows[0]
+      .n,
+  ).toBe(0);
 });
 beforeEach(async () => {
   await migration.query('DELETE FROM login_throttles');
@@ -270,6 +300,499 @@ beforeEach(async () => {
 afterAll(async () => {
   await pool.end();
   await migration.end();
+});
+describe('L8 returns and register reconciliation', () => {
+  const path = () => `/branches/${branch}/reconciliation`;
+  async function prepare(input: CorrectionInput, a = cashier) {
+    const r = await send(
+      path() + '/requests',
+      { requestKey: randomUUID(), input },
+      a,
+    );
+    expect(r.status, r.text).toBe(200);
+    return r.body.id as string;
+  }
+  async function review(id: string, kind = 'return', a = manager) {
+    return send(
+      `${path()}/requests/${id}/approve-${kind}`,
+      { requestKey: randomUUID(), password: testPassword },
+      a,
+    );
+  }
+  const finish = (id: string, a = cashier, key = randomUUID()) =>
+    send(`${path()}/requests/${id}/post`, { requestKey: key }, a);
+  async function sold(quantity = '3', a = cashier, shift = session1) {
+    const variant = await product('20'),
+      c = await cart(variant, quantity, '0', a, shift);
+    const s = await post(
+      c.id,
+      a,
+      1,
+      randomUUID(),
+      payments(String(Number(quantity) * 112)),
+    );
+    expect(s.status, s.text).toBe(200);
+    const original = await get(`${path()}/sales/${s.body.id}`, a);
+    expect(original.status, original.text).toBe(200);
+    return {
+      variant,
+      saleId: s.body.id as string,
+      lineId: original.body.lines[0].id as string,
+    };
+  }
+  function returned(
+    s: { saleId: string; lineId: string },
+    quantity = '1',
+    shift = session1,
+  ): CorrectionInput {
+    return {
+      kind: 'return',
+      sessionId: shift,
+      saleId: s.saleId,
+      reversal: false,
+      reasonCode: 'customer_return',
+      reason: 'Synthetic return',
+      lines: [{ saleItemId: s.lineId, quantity, condition: 'sellable' }],
+      payments: payments(String(Number(quantity) * 112)) as Extract<
+        CorrectionInput,
+        { kind: 'return' }
+      >['payments'],
+    };
+  }
+  it('posts damaged partial returns once, preserves original receipt and rejects reversal after a return', async () => {
+    const s = await sold(),
+      input = returned(s);
+    if (input.kind !== 'return') throw new Error();
+    input.lines[0]!.condition = 'damaged';
+    const id = await prepare(input);
+    expect((await finish(id)).status).toBe(409);
+    expect((await review(id, 'return', cashier)).status).toBe(403);
+    expect((await review(id)).status).toBe(200);
+    const results = await Promise.all([finish(id), finish(id)]);
+    for (const r of results) expect(r.status, r.text).toBe(200);
+    expect(
+      (
+        await pool.query(
+          'SELECT count(*)::int n FROM sales_returns WHERE id=$1',
+          [id],
+        )
+      ).rows[0].n,
+    ).toBe(1);
+    expect(
+      (
+        await pool.query(
+          "SELECT quantity,value FROM inventories WHERE branch_id=$1 AND variant_id=$2 AND condition='damaged'",
+          [branch, s.variant],
+        )
+      ).rows[0],
+    ).toMatchObject({ quantity: '1.000000', value: '10.000000' });
+    const original = await get(`${path()}/sales/${s.saleId}`, cashier);
+    expect(original.body.lines[0].eligible).toBe('2.000000');
+    expect(original.body.sale.total).toBe('336.00');
+    expect(
+      (
+        await send(
+          path() + '/requests',
+          {
+            requestKey: randomUUID(),
+            input: {
+              ...input,
+              reversal: true,
+              lines: [{ ...input.lines[0], quantity: '3' }],
+              payments: payments('336'),
+            },
+          },
+          cashier,
+        )
+      ).status,
+    ).toBe(409);
+    const remaining = await prepare(returned(s, '2'));
+    expect((await review(remaining)).status).toBe(200);
+    expect((await finish(remaining)).status).toBe(200);
+    expect(
+      (await get(`${path()}/sales/${s.saleId}`, cashier)).body.lines[0]
+        .eligible,
+    ).toBe('0.000000');
+    expect((await reconcile(pool)).every((r) => r.matched)).toBe(true);
+  });
+  it('refunds original snapshots into quarantine, caps original tenders and records customer history', async () => {
+    const v = await product('10'),
+      customer = await send(`/branches/${branch}/customers`, {
+        name: 'Return fixture buyer',
+        contact: '',
+        archived: false,
+      });
+    const c = await cart(
+      v,
+      '3',
+      '0',
+      cashier,
+      session1,
+      customer.body.id as string,
+    );
+    const sale = await post(c.id, cashier, 1, randomUUID(), [
+      { method: 'cash', amount: '200', reference: '' },
+      { method: 'card', amount: '200', reference: 'Synthetic card' },
+    ]);
+    expect(sale.status, sale.text).toBe(200);
+    const original = await get(`${path()}/sales/${sale.body.id}`, cashier);
+    const s = {
+      saleId: sale.body.id as string,
+      lineId: original.body.lines[0].id as string,
+    };
+    const input = returned(s);
+    if (input.kind !== 'return') throw new Error();
+    input.lines[0]!.condition = 'quarantined';
+    input.payments = [
+      { method: 'cash', amount: '100', reference: '' },
+      { method: 'card', amount: '12', reference: 'Refund reference' },
+    ];
+    // Later prices, archive status and tax changes cannot rewrite a refund.
+    await migration.query(
+      'UPDATE product_variants SET archived=true WHERE id=$1',
+      [v],
+    );
+    await migration.query(
+      'UPDATE product_prices SET amount=999 WHERE variant_id=$1',
+      [v],
+    );
+    const id = await prepare(input);
+    expect((await review(id)).status).toBe(200);
+    expect((await finish(id)).status).toBe(200);
+    expect(
+      (
+        await pool.query(
+          "SELECT amount FROM customer_transactions WHERE source_type='refund' AND source_id=$1",
+          [id],
+        )
+      ).rows[0].amount,
+    ).toBe('112.00');
+    expect(
+      (
+        await pool.query(
+          "SELECT quantity,value FROM inventories WHERE variant_id=$1 AND condition='quarantined'",
+          [v],
+        )
+      ).rows[0],
+    ).toMatchObject({ quantity: '1.000000', value: '10.000000' });
+    expect(
+      (
+        await send(
+          path() + '/requests',
+          { requestKey: randomUUID(), input: returned(s, '2') },
+          cashier,
+        )
+      ).status,
+    ).toBe(409);
+    const remaining = returned(s, '2');
+    if (remaining.kind !== 'return') throw new Error();
+    remaining.payments = [
+      { method: 'cash', amount: '36', reference: '' },
+      { method: 'card', amount: '188', reference: 'Remaining refund' },
+    ];
+    const rest = await prepare(remaining);
+    expect((await review(rest)).status).toBe(200);
+    expect((await finish(rest)).status).toBe(200);
+    await expect(
+      pool.query(
+        "INSERT INTO refund_payments(id,return_id,method,amount,reference) VALUES($1,$2,'ewallet',1,'late')",
+        [randomUUID(), rest],
+      ),
+    ).rejects.toThrow();
+    expect((await reconcile(pool)).every((r) => r.matched)).toBe(true);
+  });
+  it('locks eligibility across simultaneous refunds from different shifts', async () => {
+    const s = await sold('1'),
+      a = await prepare(returned(s)),
+      b = await prepare(returned(s, '1', session2), cashier2);
+    expect((await review(a)).status).toBe(200);
+    expect((await review(b)).status).toBe(200);
+    const result = await Promise.all([finish(a), finish(b, cashier2)]);
+    expect(result.map((r) => r.status).sort()).toEqual([200, 409]);
+    expect(
+      (
+        await pool.query(
+          'SELECT count(*)::int n,sum(total)::text total FROM sales_returns WHERE sale_id=$1',
+          [s.saleId],
+        )
+      ).rows[0],
+    ).toEqual({ n: 1, total: '112.00' });
+  });
+  it('binds branch, requester, approver permission and expiry; rolls back failed posting', async () => {
+    const s = await sold('1'),
+      id = await prepare(returned(s));
+    expect(
+      (
+        await get(
+          `/branches/${otherBranch}/reconciliation/requests/${id}`,
+          admin,
+        )
+      ).status,
+    ).toBe(404);
+    expect((await finish(id, cashier2)).status).toBe(403);
+    expect((await review(id)).status).toBe(200);
+    await migration.query(
+      'ALTER TABLE correction_approvals DISABLE TRIGGER immutable_rows',
+    );
+    try {
+      await migration.query(
+        "UPDATE correction_approvals SET expires_at=now()-interval '1 minute' WHERE request_id=$1",
+        [id],
+      );
+    } finally {
+      await migration.query(
+        'ALTER TABLE correction_approvals ENABLE TRIGGER immutable_rows',
+      );
+    }
+    expect((await finish(id)).status).toBe(409);
+    expect((await review(id)).status).toBe(200);
+    await migration.query(
+      "DELETE FROM role_permissions WHERE role_code='manager' AND permission_code='returns.approve'",
+    );
+    expect((await finish(id)).status).toBe(409);
+    await migration.query(
+      "INSERT INTO role_permissions VALUES ('manager','returns.approve')",
+    );
+    await migration.query(
+      `CREATE FUNCTION public.l8_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.action='checkout.posted' AND NEW.entity_type='correction' THEN RAISE EXCEPTION 'synthetic failure'; END IF; RETURN NEW; END; $$; CREATE TRIGGER l8_failure BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION public.l8_failure()`,
+    );
+    try {
+      expect((await finish(id)).status).toBe(500);
+    } finally {
+      await migration.query(
+        'DROP TRIGGER l8_failure ON audit_logs; DROP FUNCTION l8_failure()',
+      );
+    }
+    expect(
+      (
+        await pool.query(
+          'SELECT count(*)::int n FROM sales_returns WHERE id=$1',
+          [id],
+        )
+      ).rows[0].n,
+    ).toBe(0);
+    expect(
+      (
+        await pool.query(
+          'SELECT count(*)::int n FROM inventory_movements WHERE source_id=$1',
+          [id],
+        )
+      ).rows[0].n,
+    ).toBe(0);
+    expect((await finish(id)).status).toBe(200);
+    await expect(
+      pool.query('UPDATE sales_returns SET reason=$2 WHERE id=$1', [
+        id,
+        'rewrite',
+      ]),
+    ).rejects.toThrow();
+  });
+  it('reverses a posted sale in full without changing its receipt', async () => {
+    const s = await sold('2'),
+      input = returned(s, '2');
+    if (input.kind !== 'return') throw new Error();
+    input.reversal = true;
+    input.reasonCode = 'sale_error';
+    const id = await prepare(input);
+    expect((await review(id)).status).toBe(200);
+    expect((await finish(id)).status).toBe(200);
+    expect(
+      (await get(`/branches/${branch}/sales/${s.saleId}`, cashier)).body.sale
+        .total,
+    ).toBe('224.00');
+    expect(
+      (
+        await pool.query(
+          'SELECT sum(quantity)::text quantity,sum(value)::text value FROM inventory_movements WHERE variant_id=$1',
+          [s.variant],
+        )
+      ).rows[0],
+    ).toEqual({ quantity: '20.000000', value: '200.000000' });
+    expect(
+      (
+        await send(
+          path() + '/requests',
+          { requestKey: randomUUID(), input },
+          cashier,
+        )
+      ).status,
+    ).toBe(409);
+  });
+  it('reconciles sales, refunds, paid-in/out, safe drops and reviewed close; blocks late writes and reopening', async () => {
+    const shift = await open(cashier),
+      s = await sold('1', cashier, shift);
+    const refund = await prepare(returned(s, '1', shift));
+    expect((await review(refund)).status).toBe(200);
+    expect((await finish(refund)).status).toBe(200);
+    for (const [movement, amount] of [
+      ['paid_in', '50'],
+      ['paid_out', '20'],
+      ['safe_drop', '100'],
+    ] as const) {
+      const id = await prepare({
+        kind: 'cash',
+        sessionId: shift,
+        movement,
+        amount,
+        reason: 'Synthetic cash movement',
+      });
+      if (movement !== 'paid_in') {
+        expect((await finish(id)).status).toBe(409);
+        expect((await review(id, 'cash')).status).toBe(200);
+      }
+      expect((await finish(id)).status).toBe(200);
+    }
+    const view = await get(`${path()}/sessions/${shift}`, cashier);
+    expect(view.body.summary.expected).toEqual({
+      cash: '430.00',
+      card: '0.00',
+      ewallet: '0.00',
+    });
+    expect(view.body.summary.netSales).toBe('0.00');
+    expect(view.body.summary.netPayments).toBe('0.00');
+    const close = await prepare({
+      kind: 'close',
+      sessionId: shift,
+      counts: { cash: '429', card: '0', ewallet: '0' },
+      reason: 'Synthetic shortage review',
+    });
+    expect((await review(close, 'cash')).status).toBe(200);
+    const results = await Promise.all([finish(close), finish(close)]);
+    for (const r of results) expect(r.status, r.text).toBe(200);
+    const closed = await get(`${path()}/sessions/${shift}`, cashier);
+    expect(closed.body.summary.session.status).toBe('closed');
+    expect(closed.body.closure.variance.cash).toBe('-1.00');
+    expect(
+      (
+        await send(
+          path() + '/requests',
+          {
+            requestKey: randomUUID(),
+            input: {
+              kind: 'cash',
+              sessionId: shift,
+              movement: 'paid_in',
+              amount: '1',
+              reason: 'Late',
+            },
+          },
+          cashier,
+        )
+      ).status,
+    ).toBe(409);
+    await expect(
+      pool.query(
+        "UPDATE register_sessions SET status='open',closed_at=NULL WHERE id=$1",
+        [shift],
+      ),
+    ).rejects.toThrow();
+    const newShift = await open(cashier);
+    expect(newShift).not.toBe(shift);
+  });
+  it('invalidates a closing count when transactions change before posting and blocks active carts', async () => {
+    const shift = await open(cashier),
+      v = await product(),
+      c = await cart(v, '1', '0', cashier, shift);
+    const input: CorrectionInput = {
+      kind: 'close',
+      sessionId: shift,
+      counts: { cash: '500', card: '0', ewallet: '0' },
+      reason: 'Close',
+    };
+    expect(
+      (
+        await send(
+          path() + '/requests',
+          { requestKey: randomUUID(), input },
+          cashier,
+        )
+      ).status,
+    ).toBe(409);
+    expect(
+      (
+        await send(
+          `${base}/carts/${c.id}/cancel`,
+          { version: 1, requestKey: randomUUID() },
+          cashier,
+        )
+      ).status,
+    ).toBe(200);
+    const close = await prepare(input);
+    expect((await review(close, 'cash')).status).toBe(200);
+    const cash = await prepare({
+      kind: 'cash',
+      sessionId: shift,
+      movement: 'paid_in',
+      amount: '1',
+      reason: 'Late receipt',
+    });
+    expect((await finish(cash)).status).toBe(200);
+    expect((await finish(close)).status).toBe(409);
+  });
+  it('corrects a closed-shift noncash sale in a new shift with signed noncash reconciliation', async () => {
+    const oldShift = await open(cashier),
+      v = await product(),
+      c = await cart(v, '1', '0', cashier, oldShift);
+    const sale = await post(c.id, cashier, 1, randomUUID(), [
+      { method: 'card', amount: '112', reference: 'Original card' },
+    ]);
+    expect(sale.status, sale.text).toBe(200);
+    const close = await prepare({
+      kind: 'close',
+      sessionId: oldShift,
+      counts: { cash: '500', card: '112', ewallet: '0' },
+      reason: 'Original shift',
+    });
+    expect((await review(close, 'cash')).status).toBe(200);
+    expect((await finish(close)).status).toBe(200);
+    const newShift = await open(cashier),
+      original = await get(`${path()}/sales/${sale.body.id}`, cashier);
+    const input = returned(
+      {
+        saleId: sale.body.id as string,
+        lineId: original.body.lines[0].id as string,
+      },
+      '1',
+      newShift,
+    );
+    if (input.kind !== 'return') throw new Error();
+    input.payments = [
+      { method: 'card', amount: '112', reference: 'Confirmed external refund' },
+    ];
+    const payload = { requestKey: randomUUID(), input };
+    const created = await Promise.all([
+      send(path() + '/requests', payload, cashier),
+      send(path() + '/requests', payload, cashier),
+    ]);
+    for (const r of created) expect(r.status, r.text).toBe(200);
+    expect(created[0]!.body.id).toBe(created[1]!.body.id);
+    expect(
+      (
+        await send(
+          path() + '/requests',
+          { ...payload, input: { ...input, reason: 'Changed' } },
+          cashier,
+        )
+      ).status,
+    ).toBe(409);
+    const id = created[0]!.body.id as string;
+    expect((await review(id)).status).toBe(200);
+    expect((await finish(id)).status).toBe(200);
+    const correctionClose = await prepare({
+      kind: 'close',
+      sessionId: newShift,
+      counts: { cash: '500', card: '-112', ewallet: '0' },
+      reason: 'Refund in current shift',
+    });
+    expect((await review(correctionClose, 'cash')).status).toBe(200);
+    expect((await finish(correctionClose)).status).toBe(200);
+    const view = await get(`${path()}/sessions/${newShift}`, cashier);
+    expect(view.body.closure.variance.card).toBe('0.00');
+    expect(
+      (await get(`${path()}/sessions/${oldShift}`, cashier)).body.closure.counts
+        .card,
+    ).toBe('112');
+  });
 });
 describe('checkout and committed receipts', () => {
   it('lets till transactions share stable authority while blocking permission changes', async () => {
@@ -663,15 +1186,25 @@ describe('checkout and committed receipts', () => {
       'UPDATE product_variants SET archived=false WHERE id=$1',
       [v],
     );
+    // Deliberate fault fixture; normal close/reopen protection is verified in L8.
     await migration.query(
-      "UPDATE register_sessions SET status='closed' WHERE id=$1",
-      [session1],
+      'ALTER TABLE register_sessions DISABLE TRIGGER protect_session',
     );
-    expect((await post(c.id)).status).toBe(409);
-    await migration.query(
-      "UPDATE register_sessions SET status='open' WHERE id=$1",
-      [session1],
-    );
+    try {
+      await migration.query(
+        "UPDATE register_sessions SET status='closed' WHERE id=$1",
+        [session1],
+      );
+      expect((await post(c.id)).status).toBe(409);
+      await migration.query(
+        "UPDATE register_sessions SET status='open' WHERE id=$1",
+        [session1],
+      );
+    } finally {
+      await migration.query(
+        'ALTER TABLE register_sessions ENABLE TRIGGER protect_session',
+      );
+    }
     expect((await post(c.id)).status).toBe(200);
   });
   it('rolls back a late sale failure including cash, customer, stock, number and retry state', async () => {

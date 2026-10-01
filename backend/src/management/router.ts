@@ -43,6 +43,8 @@ import { installCatalog } from './catalog.js';
 import { installInventory } from '../inventory/router.js';
 import { installPurchasing } from '../purchasing/router.js';
 import { installCheckout } from '../checkout/router.js';
+import { installReconciliation } from '../reconciliation/router.js';
+import { installTransfers } from '../transfers/router.js';
 export type Context = {
   tx: Transaction;
   session: AuthSession;
@@ -130,6 +132,10 @@ export function managementRouter(pool: pg.Pool, options: AuthOptions) {
           'inventory.approve',
           'purchasing.approve',
           'checkout.approve',
+          'returns.approve',
+          'cash.approve',
+          'transfers.approve',
+          'transfers.resolve',
         ].includes(permission ?? '') &&
         method !== 'get'
       ) {
@@ -144,7 +150,7 @@ export function managementRouter(pool: pg.Pool, options: AuthOptions) {
         // authorization table triggers also acquire it for direct SQL changes.
         const sharedAuthority =
           method === 'get' ||
-          /^\/branches\/:branchId\/(checkout|sales|inventory|purchasing)(\/|$)/.test(
+          /^\/branches\/:branchId\/(checkout|sales|inventory|purchasing|reconciliation|transfers)(\/|$)/.test(
             path,
           );
         await authLock(tx, sharedAuthority);
@@ -188,6 +194,8 @@ export function managementRouter(pool: pg.Pool, options: AuthOptions) {
   installInventory(endpoint);
   installPurchasing(endpoint);
   installCheckout(endpoint);
+  installReconciliation(endpoint);
+  installTransfers(endpoint);
   endpoint(
     'get',
     '/auth/session',

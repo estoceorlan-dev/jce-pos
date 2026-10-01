@@ -30,6 +30,7 @@ import {
   checkoutInput,
   registerOpenInput,
   printInput,
+  correctionInput,
 } from '@jce/shared';
 export const managementPaths: Record<string, Record<string, unknown>> = {};
 function add(
@@ -102,6 +103,48 @@ function add(
   (managementPaths[target] ??= {})[method] = operation;
 }
 const stockBase = '/branches/{branchId}/inventory';
+const reconciliationBase = '/branches/{branchId}/reconciliation';
+for (const path of [
+  '/sessions',
+  '/sessions/{id}',
+  '/requests',
+  '/requests/{id}',
+  '/sales/{id}',
+])
+  add(
+    'get',
+    reconciliationBase + path,
+    'Branch membership plus cashier ownership or relevant review permission; original-sale lookup requires returns.use.',
+  );
+add(
+  'post',
+  reconciliationBase + '/preview-return',
+  'returns.use + branch membership; server refund allocation preview.',
+  correctionInput,
+);
+add(
+  'post',
+  reconciliationBase + '/requests',
+  'returns.use, checkout.use or register.close according to kind; original cashier/open session.',
+  z.object({ requestKey: uuid, input: correctionInput }).strict(),
+);
+for (const kind of ['return', 'cash'])
+  add(
+    'post',
+    reconciliationBase + '/requests/{id}/approve-' + kind,
+    kind === 'return'
+      ? 'returns.approve; different reviewer, exact request, five-minute expiry.'
+      : 'cash.approve; different reviewer, exact request, five-minute expiry.',
+    z
+      .object({ requestKey: uuid, password: z.string().min(1).max(128) })
+      .strict(),
+  );
+add(
+  'post',
+  reconciliationBase + '/requests/{id}/post',
+  'Original requesting cashier and current operation permission; immutable request identity prevents duplicate posting.',
+  z.object({ requestKey: uuid }).strict(),
+);
 const checkoutBase = '/branches/{branchId}/checkout';
 add(
   'get',

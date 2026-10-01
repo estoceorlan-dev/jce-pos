@@ -230,6 +230,12 @@ export function History({
                     <Link to={`/sales?sale=${text(row['source_id'])}`}>
                       Open sale receipt
                     </Link>
+                  ) : row['source_type'] === 'refund' ? (
+                    <Link
+                      to={`/reconciliation?request=${text(row['source_id'])}`}
+                    >
+                      Open refund
+                    </Link>
                   ) : null,
               }
             : {})}

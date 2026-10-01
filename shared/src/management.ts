@@ -1,5 +1,15 @@
 import { z } from 'zod';
 export const managedPermissions = [
+  'transfers.read',
+  'transfers.manage',
+  'transfers.approve',
+  'transfers.dispatch',
+  'transfers.receive',
+  'transfers.resolve',
+  'returns.use',
+  'returns.approve',
+  'register.close',
+  'cash.approve',
   'checkout.use',
   'checkout.approve',
   'sales.read',

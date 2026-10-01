@@ -31,4 +31,4 @@ Open the committed receipt and choose **Print receipt**. If paper printed, choos
 
 **Transactions & receipts → Printing not confirmed** shows unresolved receipts. Receipt details contain the committed customer/business, line tax/discount, payments, change and print history. Customer history and inventory movements link to the originating sale. Actual printer/paper/driver qualification remains L11.
 
-After synthetic verification or a suspected discrepancy, run `npm run inventory:reconcile`. For cash, compare each session's opening entry plus sale cash effects; do not sum cash handed over without subtracting change. Posted voids/returns and shift closing require L8, so this milestone alone is not a production-ready full trading day.
+After synthetic verification or a suspected discrepancy, run `npm run inventory:reconcile`. Use [Returns & daily close](returns-and-close.md) for original-sale refunds, linked full reversals, paid-in/out, safe drops and reviewed shift closure. Cash reconciliation includes float, applied cash after change, refunds and cash movements. Closed shifts remain immutable; later corrections use a new open shift.

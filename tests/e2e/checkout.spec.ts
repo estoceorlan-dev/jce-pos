@@ -17,7 +17,7 @@ async function login(page: Page, name = 'test.admin', password = testPassword) {
 test('cashier scans, holds, discounts, recovers a lost checkout response and reprints committed receipts', async ({
   page,
 }) => {
-  test.setTimeout(150000);
+  test.setTimeout(240000);
   const author = `test.checkout.${test.info().project.name}`;
   const suffix = randomUUID().slice(0, 8),
     sku = `TILL-${suffix.toUpperCase()}`,
@@ -287,5 +287,109 @@ test('cashier scans, holds, discounts, recovers a lost checkout response and rep
   ).json()) as { prints: unknown[]; sale: { total: string } };
   expect(after.prints).toHaveLength(4);
   expect(after.sale.total).toBe('201.60');
+  // L8 continues the same real browser shift with an allocated partial refund.
+  await page.goto('/reconciliation');
+  await page
+    .getByRole('row')
+    .filter({ hasText: `R_${suffix.toUpperCase()}` })
+    .getByRole('button', { name: 'Open shift' })
+    .click();
+  await page.getByLabel('Receipt search').fill(`Buyer ${suffix}`);
+  await page.getByRole('button', { name: 'Select for return' }).click();
+  await page.getByLabel('Return quantity', { exact: true }).fill('1');
+  await page.getByLabel('Stock disposition').selectOption('damaged');
+  await page
+    .getByLabel('Return reason', { exact: true })
+    .fill('Synthetic damaged unit');
+  await page.getByRole('button', { name: 'Calculate refund' }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Refund PHP 100.80' }),
+  ).toBeVisible();
+  await page.getByLabel('Refund cash amount').fill('100.80');
+  await page.getByRole('button', { name: 'Prepare return request' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Review return request' }),
+  ).toBeVisible();
+  const returnId = new URL(page.url()).searchParams.get('request')!;
+  const managerReview = async (id: string) => {
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+    await login(page, reviewer, reviewPassword);
+    await expect(
+      page.getByRole('heading', { name: 'Catalog', exact: true }),
+    ).toBeVisible();
+    await page.goto(`/reconciliation?request=${id}`);
+    await page.getByLabel('Confirm your password').fill(reviewPassword);
+    await page.getByRole('button', { name: 'Approve exact request' }).click();
+    await expect(page.getByText('Saved.', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+    await login(page, author);
+    await expect(
+      page.getByRole('heading', { name: 'Catalog', exact: true }),
+    ).toBeVisible();
+    await page.goto(`/reconciliation?request=${id}`);
+  };
+  await managerReview(returnId);
+  // A lost response must recover the same immutable correction after reload.
+  await page.route(
+    `**/reconciliation/requests/${returnId}/post`,
+    async (route) => {
+      await route.fetch();
+      await route.abort('failed');
+    },
+    { times: 1 },
+  );
+  await page.getByRole('button', { name: 'Post reviewed request' }).click();
+  await expect(page.getByRole('alert')).toContainText(
+    'Retry posting this same request',
+  );
+  await page.reload();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Posted once.' }),
+  ).toBeVisible();
+  await page
+    .getByRole('row')
+    .filter({ hasText: `R_${suffix.toUpperCase()}` })
+    .getByRole('button', { name: 'Open shift' })
+    .click();
+  await page.getByLabel('Counted cash').fill('500.80');
+  await page.getByLabel('Counted card').fill('100.00');
+  await page
+    .getByLabel('Close notes / variance explanation')
+    .fill('Synthetic balanced close');
+  await page.getByRole('button', { name: 'Prepare closing count' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Review close request' }),
+  ).toBeVisible();
+  const closeId = new URL(page.url()).searchParams.get('request')!;
+  await managerReview(closeId);
+  await page.getByRole('button', { name: 'Post reviewed request' }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Posted once.' }),
+  ).toBeVisible();
+  await page
+    .getByRole('row')
+    .filter({ hasText: `R_${suffix.toUpperCase()}` })
+    .getByRole('button', { name: 'Open shift' })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'Reviewed closing count' }),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole('table', { name: 'Closing variances' })
+      .getByRole('row')
+      .filter({ hasText: 'cash' })
+      .getByRole('cell')
+      .nth(2),
+  ).toHaveText('0.00');
+  await page.screenshot({
+    path: test.info().outputPath('returns-and-shift-close.png'),
+    fullPage: true,
+  });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
   expect(external).toEqual([]);
 });

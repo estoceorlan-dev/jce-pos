@@ -259,4 +259,28 @@ export async function grantManagementAccess(
     );
     await client.query(`GRANT INSERT ON customer_transactions TO ${runtime}`);
   }
+  if (version >= 8) {
+    await client.query(
+      `GRANT SELECT,INSERT ON correction_requests,correction_approvals,sales_returns,sales_return_items,refund_payments,cash_movements,register_closures TO ${runtime}`,
+    );
+    await client.query(
+      `GRANT UPDATE(status) ON correction_requests TO ${runtime}`,
+    );
+  }
+  if (version >= 9) {
+    await client.query(
+      `GRANT SELECT,INSERT ON stock_transfers,stock_transfer_items,transfer_shipments,transfer_shipment_items,transfer_receipts,transfer_receipt_items,transfer_discrepancies,transfer_discrepancy_items,transfer_transit_entries,transfer_events TO ${runtime}`,
+    );
+    await client.query(`GRANT SELECT ON transfer_conservation TO ${runtime}`);
+    await client.query(
+      `GRANT UPDATE(status,version,note,snapshot,approver_id,updated_at) ON stock_transfers TO ${runtime}`,
+    );
+    await client.query(`GRANT DELETE ON stock_transfer_items TO ${runtime}`);
+    await client.query(
+      `GRANT UPDATE(status) ON transfer_receipts TO ${runtime}`,
+    );
+    await client.query(
+      `GRANT UPDATE(status,approver_id,posted_at) ON transfer_discrepancies TO ${runtime}`,
+    );
+  }
 }

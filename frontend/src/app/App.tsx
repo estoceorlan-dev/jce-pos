@@ -20,8 +20,16 @@ import { History } from './forms';
 import { Inventory } from './inventory-pages';
 import { Purchasing } from './purchasing-pages';
 import { Checkout, Sales } from './checkout-pages';
+import { Reconciliation } from './reconciliation-pages';
 
 const managementNavigation = [
+  {
+    path: '/reconciliation',
+    label: 'Returns & daily close',
+    permission: 'checkout.use',
+    branch: true,
+    page: <Reconciliation />,
+  },
   {
     path: '/checkout',
     label: 'Checkout',
@@ -188,7 +196,7 @@ function Overview() {
           <h1>Ready for the next chapter.</h1>
           <p className="lede">Your local store workspace is taking shape.</p>
         </div>
-        <span className="phase-tag">Checkout & receiving · L7</span>
+        <span className="phase-tag">Returns & daily close · L8</span>
       </div>
       <section className="welcome">
         <div>
@@ -279,7 +287,8 @@ function Overview() {
               'Catalog and stock controls available after sign-in',
             ],
             ['Checkout & receipts', 'Available after register and tax setup'],
-            ['Reports & daily close', 'After checkout setup'],
+            ['Returns & daily close', 'Available after register setup'],
+            ['Reports', 'Planned in L10'],
           ]}
         />
       </section>

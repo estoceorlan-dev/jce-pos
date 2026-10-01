@@ -87,7 +87,7 @@ export function installCheckout(endpoint: Endpoint) {
       ).rows;
       const sessions = (
         await tx.query(
-          "SELECT s.id,s.opening_float,s.opened_at,r.code register,t.code terminal,COALESCE((SELECT sum(amount) FROM register_cash_entries e WHERE e.session_id=s.id),0)::text expected_cash FROM register_sessions s JOIN registers r ON r.id=s.register_id JOIN terminals t ON t.id=s.terminal_id WHERE s.branch_id=$1 AND s.actor_id=$2 AND s.status='open' ORDER BY s.opened_at,s.id",
+          "SELECT s.id,s.opening_float,s.opened_at,r.code register,t.code terminal,(COALESCE((SELECT sum(amount) FROM register_cash_entries e WHERE e.session_id=s.id),0)+COALESCE((SELECT sum(CASE WHEN m.kind='paid_in' THEN m.amount ELSE -m.amount END) FROM cash_movements m WHERE m.session_id=s.id),0)-COALESCE((SELECT sum(p.amount) FROM refund_payments p JOIN sales_returns sr ON sr.id=p.return_id WHERE sr.session_id=s.id AND p.method='cash'),0))::text expected_cash FROM register_sessions s JOIN registers r ON r.id=s.register_id JOIN terminals t ON t.id=s.terminal_id WHERE s.branch_id=$1 AND s.actor_id=$2 AND s.status='open' ORDER BY s.opened_at,s.id",
           [branchId, session.user.id],
         )
       ).rows;
