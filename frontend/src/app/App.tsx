@@ -21,8 +21,16 @@ import { Inventory } from './inventory-pages';
 import { Purchasing } from './purchasing-pages';
 import { Checkout, Sales } from './checkout-pages';
 import { Reconciliation } from './reconciliation-pages';
+import { Transfers } from './transfer-pages';
 
 const managementNavigation = [
+  {
+    path: '/transfers',
+    label: 'Branch transfers',
+    permission: 'transfers.read',
+    branch: true,
+    page: <Transfers />,
+  },
   {
     path: '/reconciliation',
     label: 'Returns & daily close',
@@ -196,7 +204,7 @@ function Overview() {
           <h1>Ready for the next chapter.</h1>
           <p className="lede">Your local store workspace is taking shape.</p>
         </div>
-        <span className="phase-tag">Returns & daily close · L8</span>
+        <span className="phase-tag">Branch transfers · L9</span>
       </div>
       <section className="welcome">
         <div>

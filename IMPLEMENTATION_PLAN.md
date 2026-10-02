@@ -2,7 +2,7 @@
 
 Business-specific answers and confirmations are stored only in `.local/business-intake/`, which Git ignores. This shared document contains generic planning guidance; consult the local records before applying defaults or requesting an already-recorded decision.
 
-Status (2026-10-01): L0 working decisions and synthetic fixtures documented; actual confirmations stay in ignored local records and unresolved evidence/approval remains open. L1-L8 application, database, authentication, master-data, inventory, purchasing, checkout, returns and register reconciliation implementation is complete with local automated verification. Owner, real opening-stock/value, invoice/tax/payment/closing-policy, hardware and packaged-desktop acceptance gates remain open. L9 is in progress: the transfer schema, API and integration scenarios are implemented; transfer screens, slips, browser verification and operator documentation remain pending. L10-L13 have not started. See [L8 verification](docs/acceptance/l8-verification.md).
+Status (2026-10-02): L0 working decisions and synthetic fixtures documented; actual confirmations stay in ignored local records and unresolved evidence/approval remains open. L1-L9 application, database, authentication, master-data, inventory, purchasing, checkout, returns, register reconciliation and local branch transfer implementation is complete with local automated verification. Owner, real opening-stock/value, invoice/tax/payment/closing/transfer-policy, hardware and packaged-desktop acceptance gates remain open. L10-L13 have not started. See [L9 verification](docs/acceptance/l9-verification.md).
 
 Prepared: 2026-09-20. Source of scope: [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -10,7 +10,7 @@ Prepared: 2026-09-20. Source of scope: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## 1. Current state and delivery boundary
 
-At the start of planning, the project contained the architecture document and an empty README. L1 provides application packages, tests and CI; L2 adds database roles, schema upgrades, installation/branch/terminal identities, transactional helpers, audit/outbox storage and monitoring. L3/L4 add secure accounts, branch administration/settings, catalog/partner records and staged CSV imports. L5 adds reviewed stock documents, stock/count/reservation screens and reconciled quantity/value ledgers. L6 adds approved purchase orders, partial receiving, linked reversals and supplier history. L7 adds register opening, checkout, discounts/payments, recoverable atomic sales and receipt printing. L8 adds original-sale returns, full reversals, cash movements and reviewed shift closure. Transfers, reports and installers remain future work. See the [L0 checklist](docs/acceptance/l0-evidence-register.md), [L1 verification](docs/acceptance/l1-verification.md) and [L2 verification](docs/acceptance/l2-verification.md).
+At the start of planning, the project contained the architecture document and an empty README. L1 provides application packages, tests and CI; L2 adds database roles, schema upgrades, installation/branch/terminal identities, transactional helpers, audit/outbox storage and monitoring. L3/L4 add secure accounts, branch administration/settings, catalog/partner records and staged CSV imports. L5 adds reviewed stock documents, stock/count/reservation screens and reconciled quantity/value ledgers. L6 adds approved purchase orders, partial receiving, linked reversals and supplier history. L7 adds register opening, checkout, discounts/payments, recoverable atomic sales and receipt printing. L8 adds original-sale returns, full reversals, cash movements and reviewed shift closure. L9 adds reviewed local transfers, partial receipts, discrepancy resolution, linked returns and printable history. Reports and installers remain future work. See the [L0 checklist](docs/acceptance/l0-evidence-register.md), [L1 verification](docs/acceptance/l1-verification.md) and [L2 verification](docs/acceptance/l2-verification.md).
 
 Local production includes all store operations: authentication, permissions, branches, catalog, inventory, purchasing, suppliers, customers, checkout, returns, transfers, reports, logs, settings, Windows installation, printing, backup, restore, and maintenance.
 
@@ -297,14 +297,14 @@ Implementation evidence: [L8 verification](docs/acceptance/l8-verification.md), 
 
 ### L9. Deliver local branch transfers
 
-Checkpoint (2026-10-01): backend implementation is in progress in schema 9. Source reservations, dispatch, partial receipts, reviewed discrepancies, linked returns, branch authorization and conservation checks are present with PostgreSQL integration scenarios. The milestone remains open until transfer screens, printable slips, OpenAPI documentation, browser journeys and operator guidance are delivered. All transfers currently require an independent reviewer; no threshold exemption is enabled. Independent-installation transfers are unavailable.
+Implementation evidence: [L9 verification](docs/acceptance/l9-verification.md), [decisions](docs/decisions/0010-local-transfers.md) and [operator runbook](docs/runbooks/transfers.md). All transfers require an independent reviewer; no threshold exemption is enabled. Independent-installation transfers and actual business/physical acceptance remain outside this implementation.
 
-- [ ] Implement `DRAFT -> PENDING -> APPROVED -> IN_TRANSIT -> PARTIALLY_RECEIVED -> RECEIVED`, plus rejection/cancellation paths before shipment.
-- [ ] Approval reserves source stock. Dispatch consumes the reservation, deducts source on-hand and records in-transit quantity/value in the same transaction.
-- [ ] Destination receipt adds only the quantity actually received, preserving cost at dispatch. Validate against remaining dispatched quantity and prevent duplicate receiving.
-- [ ] Model missing/damaged stock and short receipts explicitly; authorized discrepancy closure accounts for the remaining in-transit quantity/value.
-- [ ] Cancellation before shipment releases reservations. After shipment, use receipt/discrepancy/return-transfer workflows rather than deleting or casually cancelling the transfer.
-- [ ] Enforce separate source/destination branch rights, approval thresholds and requested separation of duties. Deliver transfer slips and history.
+- [x] Implement `DRAFT -> PENDING -> APPROVED -> IN_TRANSIT -> PARTIALLY_RECEIVED -> RECEIVED`, plus rejection/cancellation paths before shipment.
+- [x] Approval reserves source stock. Dispatch consumes the reservation, deducts source on-hand and records in-transit quantity/value in the same transaction.
+- [x] Destination receipt adds only the quantity actually received, preserving cost at dispatch. Validate against remaining dispatched quantity and prevent duplicate receiving.
+- [x] Model missing/damaged stock and short receipts explicitly; authorized discrepancy closure accounts for the remaining in-transit quantity/value.
+- [x] Cancellation before shipment releases reservations. After shipment, use receipt/discrepancy/return-transfer workflows rather than deleting or casually cancelling the transfer.
+- [x] Enforce separate source/destination branch rights, approval thresholds and requested separation of duties. Deliver transfer slips and history.
 
 **Exit:** source, in-transit, destination and discrepancy quantities/value reconcile through partial receipts and retries. Two branch records in the same installation complete the entire flow. The UI clearly identifies independent-installation transfers as unavailable until the continuation is enabled.
 

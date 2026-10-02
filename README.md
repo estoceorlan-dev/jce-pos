@@ -4,9 +4,9 @@ Business-specific answers and confirmations are stored only in `.local/business-
 
 Point-of-sale and general merchandise management system for JCE Dry Goods Trading.
 
-**L8 returns, reversals and register reconciliation implemented.** The application includes inventory/purchasing, checkout and receipts, linked partial/full refunds, original cost/tax allocation, sellable/damaged/quarantined returns, independently reviewed corrections, cash movements and immutable shift closes. See the [returns and close runbook](docs/runbooks/returns-and-close.md) and [L8 verification](docs/acceptance/l8-verification.md). Private business confirmations remain local. Real opening stock, receipt/tax/payment-policy and closing-policy acceptance, transfers, reporting, owner acceptance and Windows packaging remain later work.
+**L8 returns, reversals and register reconciliation implemented.** The application includes inventory/purchasing, checkout and receipts, linked partial/full refunds, original cost/tax allocation, sellable/damaged/quarantined returns, independently reviewed corrections, cash movements and immutable shift closes. See the [returns and close runbook](docs/runbooks/returns-and-close.md) and [L8 verification](docs/acceptance/l8-verification.md). Private business confirmations remain local. Real opening stock, receipt/tax/payment-policy and closing/transfer-policy acceptance, reporting, owner acceptance and Windows packaging remain later work.
 
-L9 is in progress: schema 9 and the local transfer API are included as a development checkpoint. Transfer screens, slips, API documentation and end-to-end browser verification remain pending; this is not completed transfer delivery. See the [implementation plan](IMPLEMENTATION_PLAN.md#l9-deliver-local-branch-transfers).
+**L9 local branch transfers implemented.** Independently reviewed approval reserves source stock; dispatch preserves transit value; actual partial receipts, reviewed losses/source returns and linked return transfers reconcile stock exactly. Branch-scoped screens include lost-response recovery, slips and history. Transfers between independent installations remain unavailable. See the [transfer runbook](docs/runbooks/transfers.md) and [L9 verification](docs/acceptance/l9-verification.md).
 
 ## Start locally
 

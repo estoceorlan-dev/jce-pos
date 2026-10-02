@@ -645,6 +645,37 @@ describe('local branch transfer lifecycle', () => {
     for (const result of r) expect(result.status, result.text).toBe(200);
     expect((await reconcile(pool)).every((row) => row.matched)).toBe(true);
   });
+  it('blocks approval and dispatch to an archived destination while allowing pre-shipment cancellation', async () => {
+    const t = await draft(await variant());
+    expect((await action(t.id, 'submit', 1)).status).toBe(200);
+    try {
+      await migration.query(
+        'UPDATE branches SET archived_at=now() WHERE id=$1',
+        [b],
+      );
+      expect((await action(t.id, 'approve', 2, reviewer)).status).toBe(409);
+      await migration.query(
+        'UPDATE branches SET archived_at=NULL WHERE id=$1',
+        [b],
+      );
+      expect((await action(t.id, 'approve', 2, reviewer)).status).toBe(200);
+      await migration.query(
+        'UPDATE branches SET archived_at=now() WHERE id=$1',
+        [b],
+      );
+      expect((await action(t.id, 'dispatch', 3)).status).toBe(409);
+      expect((await action(t.id, 'cancel', 3)).status).toBe(200);
+      expect((await get(`${base}/${t.id}`, source)).body.transfer.status).toBe(
+        'cancelled',
+      );
+      expect((await reconcile(pool)).every((r) => r.matched)).toBe(true);
+    } finally {
+      await migration.query(
+        'UPDATE branches SET archived_at=NULL WHERE id=$1',
+        [b],
+      );
+    }
+  });
   it('rejects same-branch and independent-installation destinations', async () => {
     const v = await variant();
     const payload = {

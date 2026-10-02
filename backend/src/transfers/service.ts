@@ -109,6 +109,14 @@ function quantity(q: string, snapshot: Snapshot) {
       'Use a positive base-unit quantity consistent with the product fraction policy.',
     );
 }
+async function activeBranches(tx: Transaction, t: Transfer) {
+  const active = await tx.query(
+    'SELECT id FROM branches WHERE id=ANY($1::uuid[]) AND archived_at IS NULL',
+    [[t.source_branch_id, t.destination_branch_id]],
+  );
+  if (active.rowCount !== 2)
+    throw conflict('Both branches must be active before approval or dispatch.');
+}
 async function localPair(tx: Transaction, source: string, destination: string) {
   const a = await installation(tx, source),
     b = await installation(tx, destination);
@@ -489,6 +497,7 @@ export async function transition(
       );
     await eligible(tx, branch, t.actor_id, 'transfers.manage');
     if (action === 'approve') {
+      await activeBranches(tx, t);
       await returnEligibility(
         tx,
         branch,
@@ -522,6 +531,7 @@ export async function transition(
     t = await advance(tx, t, 'cancelled', branch, actor, 'cancelled', note);
   } else {
     unchanged(t, version, ['approved']);
+    await activeBranches(tx, t);
     await release(tx, t, lines, actor);
     await tx.query(
       'INSERT INTO transfer_shipments(transfer_id,actor_id,note) VALUES($1,$2,$3)',
@@ -753,6 +763,7 @@ export async function resolveDiscrepancy(
   id: string,
   requestId: string,
   version: number,
+  reviewNote: string,
 ) {
   const t = await getTransfer(tx, branch, id, true);
   side(t, branch, 'destination');
@@ -866,7 +877,7 @@ export async function resolveDiscrepancy(
     branch,
     actor,
     'resolved',
-    d.note,
+    reviewNote,
     requestId,
   );
   return { id: requestId, transferId: id, version: updated.version };

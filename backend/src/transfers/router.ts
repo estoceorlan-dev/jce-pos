@@ -216,6 +216,7 @@ export function installTransfers(endpoint: Endpoint) {
               id,
               requestId,
               d.version,
+              d.note,
             ),
         ),
       );

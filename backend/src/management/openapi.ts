@@ -31,6 +31,11 @@ import {
   registerOpenInput,
   printInput,
   correctionInput,
+  transferInput,
+  transferAction,
+  transferApproval,
+  transferReceiptInput,
+  transferDiscrepancyInput,
 } from '@jce/shared';
 export const managementPaths: Record<string, Record<string, unknown>> = {};
 function add(
@@ -552,4 +557,56 @@ add(
   'post',
   '/branches/{branchId}/imports/{id}/commit',
   'catalog.manage + prices.manage + branch membership + original staging user. Stage ID is the persisted idempotency key; replay returns original result. Revalidates rows and commits atomically.',
+);
+
+const transferBase = '/branches/{branchId}/transfers';
+for (const suffix of ['', '/options', '/{id}'])
+  add(
+    'get',
+    transferBase + suffix,
+    'transfers.read + source or destination branch membership. List supports q, status, direction, page and limit; options supports q. Local installation only.',
+  );
+add(
+  'post',
+  transferBase,
+  'transfers.manage + source membership. Creates an idempotent draft. Quantities are base units.',
+  z.object({ requestKey: uuid, transfer: transferInput }).strict(),
+);
+add(
+  'put',
+  transferBase + '/{id}',
+  'transfers.manage + original author + source membership. Only drafts; immutable branches and return link.',
+  z.object({ requestKey: uuid, version, transfer: transferInput }).strict(),
+);
+for (const action of ['submit', 'approve', 'reject', 'cancel', 'dispatch'])
+  add(
+    'post',
+    transferBase + '/{id}/' + action,
+    (action === 'approve' || action === 'reject'
+      ? 'transfers.approve + independent source reviewer + password confirmation.'
+      : action === 'dispatch'
+        ? 'transfers.dispatch + source membership.'
+        : 'transfers.manage + source membership + original author.') +
+      ' Exact version and idempotency key required. Cancellation is unavailable after dispatch; all approvals reserve stock, no threshold exemptions.',
+    action === 'approve' || action === 'reject'
+      ? transferApproval
+      : transferAction,
+  );
+add(
+  'post',
+  transferBase + '/{id}/receive',
+  'transfers.receive + destination membership. Actual quantities only, remaining shipment cap, preserved dispatch value; immutable receipt.',
+  transferReceiptInput,
+);
+add(
+  'post',
+  transferBase + '/{id}/discrepancies',
+  'transfers.receive + destination membership. Proposes exact remaining quantities and value without moving stock; later changes invalidate the proposal.',
+  transferDiscrepancyInput,
+);
+add(
+  'post',
+  transferBase + '/{id}/discrepancies/{requestId}/resolve',
+  'transfers.resolve + independent destination reviewer + password. Return-to-source also requires source resolution permission. Consumes proposal once; records explicit loss or source restock. Password confirmation must complete within five minutes.',
+  transferApproval,
 );
